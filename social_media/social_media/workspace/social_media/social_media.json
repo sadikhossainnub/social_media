@@ -17,7 +17,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Facrbook",
-   "link_count": 1,
+   "link_count": 2,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -35,8 +35,18 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Facebook Settings",
+   "link_count": 0,
+   "link_to": "Facebook Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Instagram",
-   "link_count": 1,
+   "link_count": 2,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -54,8 +64,18 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Instagram Settings",
+   "link_count": 0,
+   "link_to": "Instagram Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Whatsapp",
-   "link_count": 1,
+   "link_count": 2,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -73,45 +93,55 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Send Message",
-   "link_count": 0,
-   "link_to": "Send Message",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Facebook Settings",
-   "link_count": 0,
-   "link_to": "Facebook Settings",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Instagram Settings",
-   "link_count": 0,
-   "link_to": "Instagram Settings",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
    "label": "WhatsApp Settings",
    "link_count": 0,
    "link_to": "WhatsApp Settings",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Social Media Channel",
+   "link_count": 0,
+   "link_to": "Social Media Channel",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Social Account",
+   "link_count": 0,
+   "link_to": "Social Account",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Social Post",
+   "link_count": 0,
+   "link_to": "Social Post",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Conversation",
+   "link_count": 0,
+   "link_to": "Conversation",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2025-11-30 14:06:42.759683",
+ "modified": "2025-11-30 14:57:35.936804",
  "modified_by": "Administrator",
  "module": "Social Media",
  "name": "Social Media",
