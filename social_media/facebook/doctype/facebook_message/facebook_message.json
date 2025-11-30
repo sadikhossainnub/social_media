@@ -1,0 +1,180 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-01-27 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "message_id",
+  "sender_id",
+  "recipient_id",
+  "message_type",
+  "column_break_1",
+  "message_content",
+  "attachment_url",
+  "timestamp",
+  "status",
+  "section_break_2",
+  "page_id",
+  "conversation_id",
+  "thread_id",
+  "column_break_3",
+  "is_read",
+  "is_delivered",
+  "created_time",
+  "modified_time",
+  "section_break_3",
+  "lead"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Naming Series",
+   "options": "FB-MSG-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "message_id",
+   "fieldtype": "Data",
+   "label": "Facebook Message ID",
+   "unique": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "sender_id",
+   "fieldtype": "Data",
+   "label": "Sender ID",
+   "reqd": 1
+  },
+  {
+   "fieldname": "recipient_id",
+   "fieldtype": "Data",
+   "label": "Recipient ID",
+   "reqd": 1
+  },
+  {
+   "fieldname": "message_type",
+   "fieldtype": "Select",
+   "label": "Message Type",
+   "options": "text\nimage\nvideo\naudio\nfile\nsticker\nreaction",
+   "default": "text",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "message_content",
+   "fieldtype": "Long Text",
+   "label": "Message Content"
+  },
+  {
+   "fieldname": "attachment_url",
+   "fieldtype": "Data",
+   "label": "Attachment URL"
+  },
+  {
+   "fieldname": "timestamp",
+   "fieldtype": "Datetime",
+   "label": "Timestamp",
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "sent\ndelivered\nread\nfailed",
+   "default": "sent",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Facebook Details"
+  },
+  {
+   "fieldname": "page_id",
+   "fieldtype": "Data",
+   "label": "Page ID"
+  },
+  {
+   "fieldname": "conversation_id",
+   "fieldtype": "Data",
+   "label": "Conversation ID"
+  },
+  {
+   "fieldname": "thread_id",
+   "fieldtype": "Data",
+   "label": "Thread ID"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_read",
+   "fieldtype": "Check",
+   "label": "Is Read",
+   "default": 0
+  },
+  {
+   "fieldname": "is_delivered",
+   "fieldtype": "Check",
+   "label": "Is Delivered",
+   "default": 0
+  },
+  {
+   "fieldname": "created_time",
+   "fieldtype": "Datetime",
+   "label": "Created Time"
+  },
+  {
+   "fieldname": "modified_time",
+   "fieldtype": "Datetime",
+   "label": "Modified Time"
+  },
+  {
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "CRM Integration"
+  },
+  {
+   "fieldname": "lead",
+   "fieldtype": "Link",
+   "label": "Lead",
+   "options": "Lead",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-01-27 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Facebook",
+ "name": "Facebook Message",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "message_content",
+ "track_changes": 1
+}

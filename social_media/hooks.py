@@ -148,23 +148,11 @@ app_license = "mit"
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"social_media.tasks.all"
-# 	],
-# 	"daily": [
-# 		"social_media.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"social_media.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"social_media.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"social_media.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"hourly": [
+		"social_media.utils.lead_creation.auto_create_leads_from_messages"
+	]
+}
 
 # Testing
 # -------
