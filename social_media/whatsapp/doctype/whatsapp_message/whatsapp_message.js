@@ -1,8 +1,8 @@
-// Copyright (c) 2025, Primetechbd and contributors
-// For license information, please see license.txt
-
-// frappe.ui.form.on("WhatsApp Message", {
-// 	refresh(frm) {
-
-// 	},
-// });
+frappe.ui.form.on('WhatsApp Message', {
+	refresh: function(frm) {
+		// Auto set timestamp when form loads for new documents
+		if (frm.doc.__islocal && !frm.doc.timestamp) {
+			frm.set_value('timestamp', frappe.datetime.now_datetime());
+		}
+	}
+});

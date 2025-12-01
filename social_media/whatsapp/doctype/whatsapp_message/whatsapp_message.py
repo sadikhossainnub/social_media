@@ -3,19 +3,27 @@ from frappe.model.document import Document
 
 
 class WhatsAppMessage(Document):
-	def validate(self):
+	def autoname(self):
+		# Set timestamp during document creation
 		if not self.timestamp:
 			self.timestamp = frappe.utils.now()
-		
-		if not self.created_time:
-			self.created_time = frappe.utils.now()
+	
+	def validate(self):
+		# Force set timestamp to ensure it's never empty
+		self.timestamp = self.timestamp or frappe.utils.now()
 		
 		# Validate phone number format
 		if self.phone_number and not self.phone_number.startswith('+'):
 			frappe.throw("Phone number must include country code with + prefix")
 	
+	def before_insert(self):
+		# Ensure timestamp is set before insert
+		if not getattr(self, 'timestamp', None):
+			self.timestamp = frappe.utils.now()
+	
 	def before_save(self):
-		self.modified_time = frappe.utils.now()
+		if hasattr(self, 'modified_time'):
+			self.modified_time = frappe.utils.now()
 	
 	def after_insert(self):
 		"""Auto create lead after message insertion"""
