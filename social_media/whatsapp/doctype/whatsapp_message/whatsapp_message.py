@@ -39,7 +39,6 @@ class WhatsAppMessage(Document):
 	def send_template_message(self, template_name, parameters=None):
 		"""Send WhatsApp template message"""
 		self.is_template_message = 1
-		self.template_name = template_name
 		self.message_type = "template"
 		if parameters:
 			self.message_content = str(parameters)

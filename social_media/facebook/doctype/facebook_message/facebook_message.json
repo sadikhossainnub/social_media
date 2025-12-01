@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "naming_series:",
- "creation": "2025-01-27 12:00:00.000000",
+ "creation": "2025-01-27 12:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -32,6 +32,7 @@
   {
    "fieldname": "naming_series",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Naming Series",
    "options": "FB-MSG-.YYYY.-",
    "reqd": 1
@@ -39,28 +40,31 @@
   {
    "fieldname": "message_id",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Facebook Message ID",
-   "unique": 1,
-   "reqd": 1
+   "reqd": 1,
+   "unique": 1
   },
   {
    "fieldname": "sender_id",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Sender ID",
    "reqd": 1
   },
   {
    "fieldname": "recipient_id",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Recipient ID",
    "reqd": 1
   },
   {
+   "default": "text",
    "fieldname": "message_type",
    "fieldtype": "Select",
    "label": "Message Type",
    "options": "text\nimage\nvideo\naudio\nfile\nsticker\nreaction",
-   "default": "text",
    "reqd": 1
   },
   {
@@ -69,7 +73,7 @@
   },
   {
    "fieldname": "message_content",
-   "fieldtype": "Long Text",
+   "fieldtype": "Small Text",
    "label": "Message Content"
   },
   {
@@ -84,11 +88,11 @@
    "reqd": 1
   },
   {
+   "default": "sent",
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
    "options": "sent\ndelivered\nread\nfailed",
-   "default": "sent",
    "reqd": 1
   },
   {
@@ -116,16 +120,16 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "0",
    "fieldname": "is_read",
    "fieldtype": "Check",
-   "label": "Is Read",
-   "default": 0
+   "label": "Is Read"
   },
   {
+   "default": "0",
    "fieldname": "is_delivered",
    "fieldtype": "Check",
-   "label": "Is Delivered",
-   "default": 0
+   "label": "Is Delivered"
   },
   {
    "fieldname": "created_time",
@@ -152,7 +156,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-27 12:00:00.000000",
+ "modified": "2025-12-01 14:20:02.887833",
  "modified_by": "Administrator",
  "module": "Facebook",
  "name": "Facebook Message",
@@ -172,6 +176,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
