@@ -14,7 +14,6 @@
   "message_content",
   "media_url",
   "timestamp",
-  "status",
   "section_break_2",
   "column_break_jump",
   "column_break_3",
@@ -54,7 +53,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Message Type",
-   "options": "text\nimage\nvideo\naudio\ndocument\nlocation\ncontact\ntemplate\nbutton\nlist",
+   "options": "conversation\ntext\nimage\nvideo\naudio\ndocument\nlocation\ncontact\ntemplate\nbutton\nlist",
    "reqd": 1
   },
   {
@@ -76,15 +75,6 @@
    "fieldtype": "Datetime",
    "in_list_view": 1,
    "label": "Timestamp",
-   "reqd": 1
-  },
-  {
-   "default": "sent",
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Status",
-   "options": "sent\ndelivered\nread\nfailed",
    "reqd": 1
   },
   {
@@ -144,7 +134,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-30 21:35:00.636107",
+ "modified": "2025-12-01 14:37:01.331635",
  "modified_by": "Administrator",
  "module": "Whatsapp",
  "name": "WhatsApp Message",
