@@ -52,16 +52,16 @@ def handle_verification():
         settings = frappe.get_single("Facebook Settings")
         if verify_token == settings.messenger_verify_token:
             frappe.response["type"] = "binary"
-            frappe.response["response"] = str(challenge).encode('utf-8')
-            frappe.response["headers"] = {"Content-Type": "text/plain"}
+            frappe.response["filecontent"] = str(challenge).encode('utf-8')
+            frappe.response["filename"] = "challenge.txt"
             return
         else:
             frappe.log_error("Verification token mismatch", "Facebook Webhook")
             frappe.throw("Token mismatch", frappe.PermissionError)
 
     frappe.response["type"] = "binary"
-    frappe.response["response"] = b"Invalid request"
-    frappe.response["headers"] = {"Content-Type": "text/plain"}
+    frappe.response["filecontent"] = b"Invalid request"
+    frappe.response["filename"] = "error.txt"
     return
 
 
@@ -338,3 +338,14 @@ def parse_field_data(field_data):
             parsed[name] = values[0] if len(values) == 1 else values
 
     return parsed
+
+
+@frappe.whitelist()
+def test_error_logs():
+    for log in frappe.get_all("Error Log", fields=["creation", "method", "error"], order_by="creation desc", limit=3):
+        print("="*80)
+        print(f"CREATION: {log.creation}")
+        print(f"METHOD: {log.method}")
+        print(f"ERROR:\n{log.error}")
+        print("="*80)
+

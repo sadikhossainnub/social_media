@@ -54,16 +54,16 @@ def handle_verification():
         settings = frappe.get_single("Facebook Settings")
         if verify_token == settings.messenger_verify_token:
             frappe.response["type"] = "binary"
-            frappe.response["response"] = str(challenge).encode('utf-8')
-            frappe.response["headers"] = {"Content-Type": "text/plain"}
+            frappe.response["filecontent"] = str(challenge).encode('utf-8')
+            frappe.response["filename"] = "challenge.txt"
             return
         else:
             frappe.log_error("Verification token mismatch", "Facebook Messenger Webhook")
             frappe.throw("Token mismatch", frappe.PermissionError)
     
     frappe.response["type"] = "binary"
-    frappe.response["response"] = b"Invalid request"
-    frappe.response["headers"] = {"Content-Type": "text/plain"}
+    frappe.response["filecontent"] = b"Invalid request"
+    frappe.response["filename"] = "error.txt"
     return
 
 
