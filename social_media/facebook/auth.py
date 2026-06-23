@@ -194,11 +194,14 @@ def exchange_code_for_token(code):
 	site_url = frappe.utils.get_url()
 	redirect_uri = f"{site_url}/api/method/social_media.facebook.auth.callback"
 	
+	# Use get_password() - Password fields return empty string via normal attribute access
+	app_secret = settings.get_password("app_secret")
+	
 	frappe.log_error(f"Token Exchange - App ID: {settings.app_id[:5]}..., Redirect URI: {redirect_uri}", "Facebook OAuth")
 	
 	params = {
 		"client_id": settings.app_id,
-		"client_secret": settings.app_secret,
+		"client_secret": app_secret,
 		"redirect_uri": redirect_uri,
 		"code": code
 	}
@@ -237,10 +240,13 @@ def exchange_short_lived_token(user_token):
 	"""
 	settings = frappe.get_doc("Facebook Settings")
 	
+	# Use get_password() - Password fields return empty string via normal attribute access
+	app_secret = settings.get_password("app_secret")
+	
 	params = {
 		"grant_type": "fb_exchange_token",
 		"client_id": settings.app_id,
-		"client_secret": settings.app_secret,
+		"client_secret": app_secret,
 		"fb_exchange_token": user_token
 	}
 	
