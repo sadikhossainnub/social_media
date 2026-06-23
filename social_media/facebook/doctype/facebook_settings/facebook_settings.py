@@ -1,6 +1,7 @@
 # Copyright (c) 2026, Frappe Technologies and contributors
 # For license information, please see license.txt
 
+# pyrefly: ignore [missing-import]
 import frappe
 from frappe.model.document import Document
 from datetime import datetime, timedelta
