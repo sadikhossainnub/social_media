@@ -17,7 +17,47 @@ from social_media.facebook.utils import (
 
 class FacebookPage(Document):
 	def before_insert(self):
-		pass
+		"""Auto-fetch credentials from Facebook Settings on creation."""
+		self._sync_credentials_from_settings()
+
+	def before_save(self):
+		"""Keep app_id and app_secret in sync with Facebook Settings."""
+		self._sync_credentials_from_settings(token_only=False)
+
+	def _sync_credentials_from_settings(self, token_only=False):
+		"""
+		Pull Page Access Token, App ID and App Secret from Facebook Settings.
+		Only overwrites if the field is currently blank (won't overwrite a
+		manually set token).
+		"""
+		try:
+			settings = frappe.get_doc("Facebook Settings")
+
+			# Page Access Token — only fill if blank
+			if not self.access_token and settings.page_access_token:
+				self.access_token = settings.get_password("page_access_token")
+
+			if not token_only:
+				# App ID — always mirror from Settings
+				if settings.app_id:
+					self.app_id = settings.app_id
+
+				# App Secret — always mirror from Settings
+				if settings.app_secret:
+					self.app_secret = settings.get_password("app_secret")
+
+			# Also fill page_name / page_id from Settings if blank
+			if not self.page_name and settings.page_name:
+				self.page_name = settings.page_name
+			if not self.page_id and settings.page_id:
+				self.page_id = settings.page_id
+
+		except Exception as e:
+			frappe.log_error(
+				f"Could not sync credentials from Facebook Settings: {str(e)}",
+				"Facebook Page"
+			)
+
 
 	def after_insert(self):
 		self.subscribe_to_events()
@@ -157,3 +197,21 @@ class FacebookPage(Document):
 		"""Get the webhook URL for this page."""
 		site_url = frappe.utils.get_url()
 		return f"{site_url}/api/method/social_media.facebook.api.webhook"
+
+
+@frappe.whitelist()
+def get_facebook_settings_credentials():
+	"""Fetch credentials from Facebook Settings to auto-populate on the client side."""
+	try:
+		settings = frappe.get_doc("Facebook Settings")
+		return {
+			"page_id": settings.page_id or "",
+			"page_name": settings.page_name or "",
+			"access_token": settings.get_password("page_access_token") if settings.page_access_token else "",
+			"app_id": settings.app_id or "",
+			"app_secret": settings.get_password("app_secret") if settings.app_secret else ""
+		}
+	except Exception as e:
+		frappe.log_error(f"Error fetching Facebook Settings credentials: {str(e)}", "Facebook Page")
+		return {}
+

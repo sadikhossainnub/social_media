@@ -13,10 +13,10 @@ class FacebookSettings(Document):
             site_url = frappe.utils.get_url()
             self.redirect_uri = f"{site_url}/api/method/social_media.facebook.auth.callback"
         
-        # Generate messenger verify token if not set
+        # Generate messenger verify token if not set (10 characters max)
         if not self.messenger_verify_token:
             import secrets
-            self.messenger_verify_token = secrets.token_urlsafe(32)
+            self.messenger_verify_token = secrets.token_hex(5)
 
     def after_save(self):
         """Update connection status based on current configuration"""
@@ -53,12 +53,16 @@ def refresh_token():
     """Refresh the access token if it's about to expire."""
     settings = frappe.get_doc("Facebook Settings")
     
-    if not settings.user_access_token:
+    # Use get_password() for Password fields
+    user_access_token = settings.get_password("user_access_token")
+    if not user_access_token:
         return {"success": False, "message": "No user token found"}
     
     # Check if token is expiring soon (within 7 days)
     if settings.token_expiry:
-        days_until_expiry = (settings.token_expiry - datetime.now()).days
+        from frappe.utils import get_datetime
+        expiry_dt = get_datetime(settings.token_expiry)
+        days_until_expiry = (expiry_dt - datetime.now()).days
         if days_until_expiry > 7:
             return {
                 "success": True,
@@ -67,7 +71,7 @@ def refresh_token():
     
     # Import auth module and refresh
     from social_media.facebook import auth
-    tokens = auth.exchange_short_lived_token(settings.user_access_token)
+    tokens = auth.exchange_short_lived_token(user_access_token)
     
     if not tokens:
         return {"success": False, "message": "Failed to refresh token"}

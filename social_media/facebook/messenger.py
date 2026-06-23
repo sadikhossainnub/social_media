@@ -53,9 +53,13 @@ def handle_verification():
     if mode and challenge:
         settings = frappe.get_single("Facebook Settings")
         if verify_token == settings.messenger_verify_token:
-            return challenge
+            frappe.local.response["type"] = "binary"
+            frappe.local.response["filecontent"] = challenge
+            return
     
-    return "Invalid request"
+    frappe.local.response["type"] = "binary"
+    frappe.local.response["filecontent"] = "Invalid request"
+    return
 
 
 def handle_messaging_event(data):
