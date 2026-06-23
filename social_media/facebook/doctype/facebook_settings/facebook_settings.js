@@ -169,6 +169,73 @@ function add_custom_buttons(frm) {
                 }
             });
         }, 'Facebook').addClass('btn-primary');
+
+        // Manual Token button
+        frm.add_custom_button(__('Set Token Manually'), function() {
+            const d = new frappe.ui.Dialog({
+                title: __('Set Page Access Token Manually'),
+                fields: [
+                    {
+                        fieldname: 'info_html',
+                        fieldtype: 'HTML',
+                        options: `<div class="alert alert-info" style="margin-bottom:12px;">
+                            <b>Get your token from:</b><br>
+                            <a href="https://developers.facebook.com/tools/explorer/" target="_blank">
+                                Facebook Graph API Explorer
+                            </a>
+                            &nbsp;→ Select your Page → Generate Token
+                        </div>`
+                    },
+                    {
+                        fieldname: 'page_access_token',
+                        fieldtype: 'Small Text',
+                        label: __('Page Access Token'),
+                        reqd: 1,
+                        description: __('Paste the Page Access Token from Graph API Explorer')
+                    },
+                    {
+                        fieldname: 'page_id',
+                        fieldtype: 'Data',
+                        label: __('Page ID (optional)'),
+                        description: __('Will be fetched automatically from Facebook if left blank')
+                    },
+                    {
+                        fieldname: 'page_name',
+                        fieldtype: 'Data',
+                        label: __('Page Name (optional)'),
+                        description: __('Will be fetched automatically from Facebook if left blank')
+                    }
+                ],
+                primary_action_label: __('Save Token'),
+                primary_action: function(values) {
+                    if (!values.page_access_token) {
+                        frappe.msgprint(__('Please enter a Page Access Token.'));
+                        return;
+                    }
+                    frappe.call({
+                        method: 'social_media.facebook.doctype.facebook_settings.facebook_settings.set_manual_token',
+                        args: {
+                            page_access_token : values.page_access_token,
+                            page_id           : values.page_id || null,
+                            page_name         : values.page_name || null
+                        },
+                        freeze: true,
+                        freeze_message: __('Validating token with Facebook...'),
+                        callback: function(r) {
+                            if (r.message && r.message.success) {
+                                frappe.show_alert({
+                                    message: r.message.message,
+                                    indicator: 'green'
+                                }, 6);
+                                d.hide();
+                                frm.reload_doc();
+                            }
+                        }
+                    });
+                }
+            });
+            d.show();
+        }, 'Facebook').addClass('btn-warning');
     } else {
         // Disconnect button
         frm.add_custom_button(__('Disconnect'), function() {

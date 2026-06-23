@@ -134,7 +134,68 @@ def sync_leads(form_id=None):
 
 @frappe.whitelist()
 def get_leads(form_id=None, status=None):
-    """Get Facebook leads."""
-    from social_media.facebook import leads
-    
-    return leads.get_leads(form_id, status)
+	"""Get Facebook leads."""
+	from social_media.facebook import leads
+	
+	return leads.get_leads(form_id, status)
+
+
+@frappe.whitelist()
+def set_manual_token(page_access_token, page_id=None, page_name=None):
+	"""
+	Manually set a Page Access Token obtained from Facebook Graph API Explorer.
+
+	Args:
+		page_access_token : Valid Facebook Page Access Token
+		page_id           : Facebook Page ID (optional — fetched automatically if blank)
+		page_name         : Facebook Page Name (optional — fetched automatically if blank)
+
+	Returns:
+		dict: Result with success flag and message
+	"""
+	import requests
+
+	if not page_access_token:
+		frappe.throw("Page Access Token is required.")
+
+	# ── Validate the token against Facebook Graph API ──────────────────────────
+	try:
+		verify_url = "https://graph.facebook.com/v18.0/me"
+		resp = requests.get(
+			verify_url,
+			params={"access_token": page_access_token, "fields": "id,name"},
+			timeout=15,
+		)
+		result = resp.json()
+
+		if resp.status_code != 200 or "error" in result:
+			error_msg = result.get("error", {}).get("message", "Invalid token")
+			frappe.throw(f"Token validation failed: {error_msg}")
+
+		# Auto-fill page_id / page_name from the API response if not supplied
+		if not page_id:
+			page_id = result.get("id", "")
+		if not page_name:
+			page_name = result.get("name", "")
+
+	except requests.exceptions.RequestException as e:
+		frappe.throw(f"Could not reach Facebook API: {str(e)}")
+
+	# ── Save to Facebook Settings ───────────────────────────────────────────────
+	settings = frappe.get_doc("Facebook Settings")
+	settings.page_access_token = page_access_token
+	settings.user_access_token = page_access_token   # use as user token too
+	settings.page_id           = page_id
+	settings.page_name         = page_name
+	settings.is_connected      = 1
+	settings.token_expiry      = None                 # unknown expiry for manual tokens
+	settings.save(ignore_permissions=True)
+
+	frappe.db.commit()
+
+	return {
+		"success"   : True,
+		"message"   : f"Token saved! Connected to page: {page_name} (ID: {page_id})",
+		"page_id"   : page_id,
+		"page_name" : page_name,
+	}
