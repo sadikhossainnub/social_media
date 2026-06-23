@@ -1,0 +1,165 @@
+{
+ "actions": [],
+ "autoname": "FB-SR-.YYYY.-.#####",
+ "creation": "2026-05-28 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "DocType",
+ "document_type": "Document",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "facebook_page",
+  "enabled",
+  "context_section",
+  "response_type",
+  "conversation_context",
+  "user_query",
+  "response_options_section",
+  "option_1",
+  "option_1_score",
+  "option_2",
+  "option_2_score",
+  "option_3",
+  "option_3_score",
+  "selected_option",
+  "ai_section",
+  "ai_model",
+  "temperature",
+  "max_tokens",
+  "system_prompt"
+ ],
+ "fields": [
+  {
+   "fieldname": "facebook_page",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Facebook Page",
+   "options": "Facebook Page",
+   "reqd": 1
+  },
+  {
+   "default": 1,
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "context_section",
+   "fieldtype": "Section Break",
+   "label": "Context & Query"
+  },
+  {
+   "fieldname": "response_type",
+   "fieldtype": "Select",
+   "label": "Response Type",
+   "options": "Product Inquiry\nOrder Status\nTechnical Support\nGeneral Question\nComplaint\nFeedback"
+  },
+  {
+   "fieldname": "conversation_context",
+   "fieldtype": "Text Editor",
+   "label": "Conversation Context"
+  },
+  {
+   "fieldname": "user_query",
+   "fieldtype": "Text Editor",
+   "label": "User Query",
+   "reqd": 1
+  },
+  {
+   "fieldname": "response_options_section",
+   "fieldtype": "Section Break",
+   "label": "Generated Response Options"
+  },
+  {
+   "fieldname": "option_1",
+   "fieldtype": "Text Editor",
+   "label": "Option 1"
+  },
+  {
+   "fieldname": "option_1_score",
+   "fieldtype": "Float",
+   "label": "Option 1 Score"
+  },
+  {
+   "fieldname": "option_2",
+   "fieldtype": "Text Editor",
+   "label": "Option 2"
+  },
+  {
+   "fieldname": "option_2_score",
+   "fieldtype": "Float",
+   "label": "Option 2 Score"
+  },
+  {
+   "fieldname": "option_3",
+   "fieldtype": "Text Editor",
+   "label": "Option 3"
+  },
+  {
+   "fieldname": "option_3_score",
+   "fieldtype": "Float",
+   "label": "Option 3 Score"
+  },
+  {
+   "fieldname": "selected_option",
+   "fieldtype": "Select",
+   "label": "Selected Option",
+   "options": "Option 1\nOption 2\nOption 3\nCustom"
+  },
+  {
+   "fieldname": "ai_section",
+   "fieldtype": "Section Break",
+   "label": "AI Configuration"
+  },
+  {
+   "fieldname": "ai_model",
+   "fieldtype": "Select",
+   "label": "AI Model",
+   "options": "Claude 3.5 Sonnet\nClaude 3 Opus\nGPT-4\nGemini Pro"
+  },
+  {
+   "default": 0.7,
+   "fieldname": "temperature",
+   "fieldtype": "Float",
+   "label": "Temperature (0.0-1.0)"
+  },
+  {
+   "default": 500,
+   "fieldname": "max_tokens",
+   "fieldtype": "Int",
+   "label": "Max Tokens"
+  },
+  {
+   "fieldname": "system_prompt",
+   "fieldtype": "Text Editor",
+   "label": "System Prompt"
+  }
+ ],
+ "icon": "fa-lightbulb",
+ "idx": 1,
+ "links": [],
+ "modified": "2026-05-28 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Facebook",
+ "name": "Facebook Smart Response",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

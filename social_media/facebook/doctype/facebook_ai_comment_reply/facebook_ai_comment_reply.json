@@ -1,0 +1,175 @@
+{
+ "actions": [],
+ "autoname": "FB-ACR-.YYYY.-.#####",
+ "creation": "2026-05-28 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "DocType",
+ "document_type": "Document",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "facebook_page",
+  "enabled",
+  "comment_section",
+  "comment_id",
+  "original_comment",
+  "comment_author",
+  "post_id",
+  "ai_section",
+  "ai_model",
+  "sentiment",
+  "sentiment_score",
+  "generated_reply",
+  "approval_section",
+  "approved_by",
+  "approval_status",
+  "is_published",
+  "settings_section",
+  "require_admin_approval",
+  "auto_publish_on_approval",
+  "reply_tone"
+ ],
+ "fields": [
+  {
+   "fieldname": "facebook_page",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Facebook Page",
+   "options": "Facebook Page",
+   "reqd": 1
+  },
+  {
+   "default": 1,
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "comment_section",
+   "fieldtype": "Section Break",
+   "label": "Comment Details"
+  },
+  {
+   "fieldname": "comment_id",
+   "fieldtype": "Data",
+   "label": "Facebook Comment ID",
+   "reqd": 1
+  },
+  {
+   "fieldname": "original_comment",
+   "fieldtype": "Text Editor",
+   "label": "Original Comment"
+  },
+  {
+   "fieldname": "comment_author",
+   "fieldtype": "Data",
+   "label": "Comment Author"
+  },
+  {
+   "fieldname": "post_id",
+   "fieldtype": "Link",
+   "label": "Facebook Post",
+   "options": "Facebook Post"
+  },
+  {
+   "fieldname": "ai_section",
+   "fieldtype": "Section Break",
+   "label": "AI Analysis & Response"
+  },
+  {
+   "fieldname": "ai_model",
+   "fieldtype": "Select",
+   "label": "AI Model Used",
+   "options": "Claude 3.5 Sonnet\nClaude 3 Opus\nGPT-4\nGemini Pro"
+  },
+  {
+   "fieldname": "sentiment",
+   "fieldtype": "Select",
+   "label": "Detected Sentiment",
+   "options": "Positive\nNeutral\nNegative"
+  },
+  {
+   "fieldname": "sentiment_score",
+   "fieldtype": "Float",
+   "label": "Sentiment Score (-1 to 1)"
+  },
+  {
+   "fieldname": "generated_reply",
+   "fieldtype": "Text Editor",
+   "label": "AI Generated Reply"
+  },
+  {
+   "fieldname": "approval_section",
+   "fieldtype": "Section Break",
+   "label": "Approval Workflow"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User"
+  },
+  {
+   "fieldname": "approval_status",
+   "fieldtype": "Select",
+   "label": "Approval Status",
+   "options": "Pending\nApproved\nRejected\nPublished"
+  },
+  {
+   "default": 0,
+   "fieldname": "is_published",
+   "fieldtype": "Check",
+   "label": "Is Published"
+  },
+  {
+   "fieldname": "settings_section",
+   "fieldtype": "Section Break",
+   "label": "Settings"
+  },
+  {
+   "default": 1,
+   "fieldname": "require_admin_approval",
+   "fieldtype": "Check",
+   "label": "Require Admin Approval"
+  },
+  {
+   "default": 0,
+   "fieldname": "auto_publish_on_approval",
+   "fieldtype": "Check",
+   "label": "Auto Publish When Approved"
+  },
+  {
+   "fieldname": "reply_tone",
+   "fieldtype": "Select",
+   "label": "Reply Tone",
+   "options": "Professional\nFriendly\nHumorous\nBrand Voice"
+  }
+ ],
+ "icon": "fa-comments",
+ "idx": 1,
+ "links": [],
+ "modified": "2026-05-28 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Facebook",
+ "name": "Facebook AI Comment Reply",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -1,0 +1,103 @@
+{
+    "actions": [],
+    "allow_rename": 1,
+    "creation": "2026-05-29 00:00:00.000000",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "reference_section",
+        "reference_doctype",
+        "reference_name",
+        "post_section",
+        "post_id",
+        "post_message",
+        "posted_at",
+        "status_section",
+        "status",
+        "error_message"
+    ],
+    "fields": [
+        {
+            "fieldname": "reference_section",
+            "fieldtype": "Section Break",
+            "label": "Reference"
+        },
+        {
+            "fieldname": "reference_doctype",
+            "fieldtype": "Link",
+            "label": "Reference DocType",
+            "options": "DocType",
+            "read_only": 1
+        },
+        {
+            "fieldname": "reference_name",
+            "fieldtype": "Dynamic Link",
+            "label": "Reference Name",
+            "options": "reference_doctype",
+            "read_only": 1
+        },
+        {
+            "fieldname": "post_section",
+            "fieldtype": "Section Break",
+            "label": "Post Details"
+        },
+        {
+            "fieldname": "post_id",
+            "fieldtype": "Data",
+            "label": "Facebook Post ID",
+            "read_only": 1
+        },
+        {
+            "fieldname": "post_message",
+            "fieldtype": "Long Text",
+            "label": "Post Message"
+        },
+        {
+            "fieldname": "posted_at",
+            "fieldtype": "Datetime",
+            "label": "Posted At",
+            "read_only": 1
+        },
+        {
+            "fieldname": "status_section",
+            "fieldtype": "Section Break",
+            "label": "Status"
+        },
+        {
+            "fieldname": "status",
+            "fieldtype": "Select",
+            "label": "Status",
+            "options": "Pending\nPosted\nFailed\nDeleted",
+            "read_only": 1
+        },
+        {
+            "fieldname": "error_message",
+            "fieldtype": "Small Text",
+            "label": "Error Message",
+            "read_only": 1
+        }
+    ],
+    "index_web_pages_for_search": 1,
+    "links": [],
+    "modified": "2026-05-29 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Facebook",
+    "name": "Facebook Post Log",
+    "naming_rule": "Random",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "print": 1,
+            "read": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
+}

@@ -1,0 +1,160 @@
+{
+    "actions": [],
+    "allow_rename": 1,
+    "creation": "2026-05-29 00:00:00.000000",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "lead_info_section",
+        "facebook_lead_id",
+        "lead_form_id",
+        "page",
+        "page_name",
+        "column_break_1",
+        "full_name",
+        "email",
+        "phone",
+        "ad_section",
+        "ad_name",
+        "campaign_name",
+        "created_at",
+        "crm_section",
+        "erpnext_lead",
+        "status",
+        "raw_data_section",
+        "raw_data"
+    ],
+    "fields": [
+        {
+            "fieldname": "lead_info_section",
+            "fieldtype": "Section Break",
+            "label": "Lead Information"
+        },
+        {
+            "fieldname": "facebook_lead_id",
+            "fieldtype": "Data",
+            "label": "Facebook Lead ID",
+            "reqd": 1,
+            "unique": 1,
+            "read_only": 1
+        },
+        {
+            "fieldname": "lead_form_id",
+            "fieldtype": "Data",
+            "label": "Lead Form ID",
+            "read_only": 1
+        },
+        {
+            "fieldname": "page",
+            "fieldtype": "Link",
+            "label": "Facebook Page",
+            "options": "Facebook Page",
+            "read_only": 1
+        },
+        {
+            "fieldname": "page_name",
+            "fieldtype": "Data",
+            "label": "Page Name",
+            "read_only": 1
+        },
+        {
+            "fieldname": "column_break_1",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "full_name",
+            "fieldtype": "Data",
+            "label": "Full Name",
+            "read_only": 1
+        },
+        {
+            "fieldname": "email",
+            "fieldtype": "Data",
+            "label": "Email",
+            "read_only": 1
+        },
+        {
+            "fieldname": "phone",
+            "fieldtype": "Data",
+            "label": "Phone",
+            "read_only": 1
+        },
+        {
+            "fieldname": "ad_section",
+            "fieldtype": "Section Break",
+            "label": "Ad Information"
+        },
+        {
+            "fieldname": "ad_name",
+            "fieldtype": "Data",
+            "label": "Ad Name",
+            "read_only": 1
+        },
+        {
+            "fieldname": "campaign_name",
+            "fieldtype": "Data",
+            "label": "Campaign Name",
+            "read_only": 1
+        },
+        {
+            "fieldname": "created_at",
+            "fieldtype": "Datetime",
+            "label": "Created At",
+            "read_only": 1
+        },
+        {
+            "fieldname": "crm_section",
+            "fieldtype": "Section Break",
+            "label": "CRM Integration"
+        },
+        {
+            "fieldname": "erpnext_lead",
+            "fieldtype": "Link",
+            "label": "ERPNext Lead",
+            "options": "Lead",
+            "read_only": 1
+        },
+        {
+            "fieldname": "status",
+            "fieldtype": "Select",
+            "label": "Status",
+            "options": "New\nConverted\nIgnored",
+            "default": "New",
+            "read_only": 1
+        },
+        {
+            "fieldname": "raw_data_section",
+            "fieldtype": "Section Break",
+            "label": "Raw Data"
+        },
+        {
+            "fieldname": "raw_data",
+            "fieldtype": "JSON",
+            "label": "Raw Data",
+            "read_only": 1
+        }
+    ],
+    "index_web_pages_for_search": 1,
+    "links": [],
+    "modified": "2026-05-29 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Facebook",
+    "name": "Facebook Lead",
+    "naming_rule": "Random",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "print": 1,
+            "read": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
+}

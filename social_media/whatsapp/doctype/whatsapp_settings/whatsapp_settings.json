@@ -1,0 +1,76 @@
+{
+ "actions": [],
+ "creation": "2024-02-11 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "evolution_api_section",
+  "evolution_api_endpoint",
+  "api_key",
+  "webhook_section",
+  "webhook_url",
+  "webhook_copy_button"
+ ],
+ "fields": [
+  {
+   "fieldname": "evolution_api_section",
+   "fieldtype": "Section Break",
+   "label": "Evolution API Configuration"
+  },
+  {
+   "fieldname": "evolution_api_endpoint",
+   "fieldtype": "Data",
+   "label": "Evolution API Endpoint",
+   "reqd": 1,
+   "description": "Base URL of the Evolution API (e.g., http://localhost:8080)"
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Password",
+   "label": "Global API Key",
+   "reqd": 1
+  },
+  {
+   "fieldname": "webhook_section",
+   "fieldtype": "Section Break",
+   "label": "Webhook Configuration"
+  },
+  {
+   "fieldname": "webhook_url",
+   "fieldtype": "Data",
+   "label": "Webhook URL for Evolution API",
+   "read_only": 1,
+   "description": "Copy this URL and add it to your Evolution API webhook configuration",
+   "depends_on": "eval: frappe.session.user && frappe.session.user !== 'Guest'"
+  },
+  {
+   "fieldname": "webhook_copy_button",
+   "fieldtype": "HTML",
+   "label": "Copy Webhook",
+   "read_only": 1,
+   "description": "Quick copy button for webhook URL"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2024-02-11 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Whatsapp",
+ "name": "Whatsapp Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

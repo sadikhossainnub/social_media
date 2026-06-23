@@ -1,0 +1,143 @@
+{
+	"actions": [],
+	"creation": "2026-05-29 00:00:00.000000",
+	"doctype": "DocType",
+	"engine": "InnoDB",
+	"field_order": [
+		"quick_start_section",
+		"quick_links_html",
+		"getting_started_section",
+		"getting_started_html",
+		"step_1_section",
+		"step_1_html",
+		"step_2_section",
+		"step_2_html",
+		"step_3_section",
+		"step_3_html",
+		"step_4_section",
+		"step_4_html",
+		"step_5_section",
+		"step_5_html",
+		"troubleshooting_section",
+		"troubleshooting_html",
+		"faq_section",
+		"faq_html"
+	],
+	"fields": [
+		{
+			"fieldname": "quick_start_section",
+			"fieldtype": "Section Break",
+			"label": "🚀 Quick Start"
+		},
+		{
+			"fieldname": "quick_links_html",
+			"fieldtype": "HTML",
+			"label": "Quick Links",
+			"options": "<div class='row' style='margin: 20px 0;'><div class='col-md-3'><a href='javascript:void(0)' onclick=\"frappe.set_route('/app/facebook-settings')\" class='btn btn-primary btn-block'><b>⚙️ Go to Settings</b><br><small>Configure your credentials</small></a></div><div class='col-md-3'><a href='/app/facebook-page' class='btn btn-info btn-block'><b>📄 My Pages</b><br><small>Manage your Facebook pages</small></a></div><div class='col-md-3'><a href='/app/facebook-message-log' class='btn btn-success btn-block'><b>💬 Messages</b><br><small>View your messages</small></a></div><div class='col-md-3'><a href='https://developers.facebook.com' target='_blank' class='btn btn-warning btn-block'><b>🔗 Facebook Dev</b><br><small>Developer Dashboard</small></a></div></div>"
+		},
+		{
+			"fieldname": "getting_started_section",
+			"fieldtype": "Section Break",
+			"label": "📖 Getting Started"
+		},
+		{
+			"fieldname": "getting_started_html",
+			"fieldtype": "HTML",
+			"label": "Introduction",
+			"options": "<h4>স্বাগতম Facebook Integration গাইডে!</h4><p>এই গাইডটি আপনাকে আপনার Facebook Page কে ERPNext এর সাথে সংযুক্ত করতে সাহায্য করবে।</p><p><strong>আপনি করতে পারবেন:</strong></p><ul><li>Facebook থেকে বার্তা গ্রহণ করুন এবং ERPNext এ দেখুন</li><li>ERPNext থেকে Facebook বার্তা পাঠান</li><li>স্বয়ংক্রিয় উত্তর সেটআপ করুন</li><li>ভবিষ্যতের পোস্ট সাজান</li><li>Lead Forms একীভূত করুন</li></ul>"
+		},
+		{
+			"fieldname": "step_1_section",
+			"fieldtype": "Section Break",
+			"label": "Step 1: Facebook Developer App তৈরি করুন"
+		},
+		{
+			"fieldname": "step_1_html",
+			"fieldtype": "HTML",
+			"label": "Step 1 Details",
+			"options": "<h5>ধাপ ১.১: Developer Account এ লগইন করুন</h5><ol><li><a href='https://developers.facebook.com' target='_blank'>https://developers.facebook.com</a> এ যান</li><li>আপনার Facebook অ্যাকাউন্ট দিয়ে লগইন করুন</li><li><b>\"Get Started\"</b> বাটনে ক্লিক করুন</li></ol><h5>ধাপ ১.२: নতুন App তৈরি করুন</h5><ol><li><b>\"My Apps\"</b> মেনুতে যান</li><li><b>\"Create App\"</b> বাটনে ক্লিক করুন</li><li>App প্রকার হিসেবে <b>\"Business\"</b> নির্বাচন করুন</li><li>নিচের তথ্য পূরণ করুন:<ul><li><b>App Name</b>: আপনার ব্যবসার নাম (যেমন: MyBusiness Messenger)</li><li><b>App Email</b>: আপনার ইমেইল</li><li><b>App Purpose</b>: Business Management</li></ul></li></ol><h5>ধাপ १.३: Messenger Product যোগ করুন</h5><ol><li>App ড্যাশবোর্ডে যান</li><li><b>\"Add Products\"</b> এ ক্লিক করুন</li><li><b>Messenger</b> খুঁজুন এবং <b>\"Set Up\"</b> ক্লিক করুন</li><li>স্বাগত স্ক্রিন পরবর্তী করুন</li></ol>"
+		},
+		{
+			"fieldname": "step_2_section",
+			"fieldtype": "Section Break",
+			"label": "Step 2: App Credentials পান"
+		},
+		{
+			"fieldname": "step_2_html",
+			"fieldtype": "HTML",
+			"label": "Step 2 Details",
+			"options": "<h5>ধাপ २.१: App ID এবং Secret পান</h5><ol><li><b>Settings > Basic</b> এ যান</li><li>নিচের তথ্য কপি করুন:<ul><li><b>App ID</b> (দীর্ঘ সংখ্যা)</li><li><b>App Secret</b> (দীর্ঘ স্ট্রিং - গোপনীয় রাখুন!)</li></ul></li></ol><h5>ধาপ २.२: ERPNext এ ক্রেডেনশিয়াল যোগ করুন</h5><ol><li>ERPNext এ <a href='javascript:void(0)' onclick=\"frappe.set_route('/app/facebook-settings')\"><b>Facebook Settings</b></a> খুলুন</li><li>নিচের ফিল্ডগুলি পূরণ করুন:<ul><li><b>App ID</b>: আপনার Facebook App ID</li><li><b>App Secret</b>: আপনার Facebook App Secret</li></ul></li><li><b>Save</b> ক্লিক করুন</li></ol>"
+		},
+		{
+			"fieldname": "step_3_section",
+			"fieldtype": "Section Break",
+			"label": "Step 3: Verification Token তৈরি করুন"
+		},
+		{
+			"fieldname": "step_3_html",
+			"fieldtype": "HTML",
+			"label": "Step 3 Details",
+			"options": "<h5>ধাপ ३.१: Token জেনারেট করুন</h5><ol><li><a href='javascript:void(0)' onclick=\"frappe.set_route('/app/facebook-settings')\"><b>Facebook Settings</b></a> পৃষ্ঠায় যান</li><li><b>\"Generate Token\"</b> বাটনে ক্লিক করুন</li><li>Token স্বয়ংক্রিয়ভাবে তৈরি হবে এবং পূরণ হবে</li><li><b>Save</b> ক্লিক করুন</li></ol><h5>বিকল্প: নিজে একটি Token তৈরি করুন</h5><p>আপনি নিজে একটি শক্তিশালী টোকেন তৈরি করতে পারেন:</p><ul><li>কমপক্ষে ২০ অক্ষর দীর্ঘ হওয়া উচিত</li><li>বড় হাতের এবং ছোট হাতের অক্ষর মিশ্রিত করুন</li><li>সংখ্যা এবং বিশেষ চিহ্ন অন্তর্ভুক্ত করুন</li></ul><p><b>উদাহরণ:</b> <code>MyApp2024@SecureToken#789</code></p>"
+		},
+		{
+			"fieldname": "step_4_section",
+			"fieldtype": "Section Break",
+			"label": "Step 4: Webhook Configure করুন"
+		},
+		{
+			"fieldname": "step_4_html",
+			"fieldtype": "HTML",
+			"label": "Step 4 Details",
+			"options": "<h5>ধাপ ४.१: Callback URL কপি করুন</h5><ol><li>ERPNext এ <a href='javascript:void(0)' onclick=\"frappe.set_route('/app/facebook-settings')\"><b>Facebook Settings</b></a> খোলা থাকুন</li><li><b>\"Callback URL\"</b> ফিল্ড খুঁজুন</li><li><b>\"Copy Callback URL\"</b> বাটনে ক্লিক করুন</li></ol><h5>ধাপ ४.२: Facebook এ Webhook যোগ করুন</h5><ol><li>Facebook Developer Dashboard এ যান</li><li><b>Messenger > Settings</b> এ নেভিগেট করুন</li><li><b>Webhooks</b> সেকশনে <b>\"Add Callback URL\"</b> ক্লিক করুন</li><li>নিচের তথ্য পূরণ করুন:<ul><li><b>Callback URL</b>: ERPNext থেকে কপি করা URL</li><li><b>Verify Token</b>: আপনার তৈরি করা Verification Token</li></ul></li><li><b>\"Subscribe to Webhook Events\"</b> এ নিচের ইভেন্ট চেক করুন:<ul><li>✅ messages</li><li>✅ messaging_postbacks</li><li>✅ message_deliveries</li><li>✅ message_reads</li></ul></li><li><b>\"Verify and Save\"</b> ক্লিক করুন</li></ol><h5>ধাপ ४.३: ERPNext এ Webhook চিহ্নিত করুন</h5><ol><li>ERPNext এ Facebook Settings এ ফিরুন</li><li><b>\"Webhook Configured\"</b> চেকবক্স চেক করুন</li><li><b>Save</b> ক্লিক করুন</li></ol>"
+		},
+		{
+			"fieldname": "step_5_section",
+			"fieldtype": "Section Break",
+			"label": "Step 5: Page Access Token পান"
+		},
+		{
+			"fieldname": "step_5_html",
+			"fieldtype": "HTML",
+			"label": "Step 5 Details",
+			"options": "<h5>ধाপ ५.१: Token জেনারেট করুন</h5><ol><li>Facebook Developer Dashboard এ যান</li><li><b>Messenger > Settings</b> এ স্ক্রোল করুন</li><li><b>\"Access Tokens\"</b> সেকশনে <b>\"Add or Remove Page\"</b> ক্লিক করুন</li><li>আপনার Facebook Page নির্বাচন করুন</li><li>কনফার্মেশনের পরে, নতুন <b>Page Access Token</b> দেখা যাবে</li><li>এটি কপি করুন</li></ol><h5>ধাপ ५.२: ERPNext এ Page Access Token যোগ করুন</h5><ol><li>ERPNext এ <a href='javascript:void(0)' onclick=\"frappe.set_route('/app/facebook-settings')\"><b>Facebook Settings</b></a> খুলুন</li><li><b>\"Page Access Token\"</b> ফিল্ডে পেস্ট করুন</li><li><b>Save</b> ক্লিক করুন</li></ol>"
+		},
+		{
+			"fieldname": "troubleshooting_section",
+			"fieldtype": "Section Break",
+			"label": "🔧 Troubleshooting"
+		},
+		{
+			"fieldname": "troubleshooting_html",
+			"fieldtype": "HTML",
+			"label": "Common Issues",
+			"options": "<h5>❌ সমস্যা: \"Webhook verification failed\"</h5><p><b>সমাধান:</b></p><ul><li>Verification Token সঠিক কিনা নিশ্চিত করুন</li><li>Callback URL সঠিক কিনা চেক করুন</li><li>আপনার সাইট internet এ accessible কিনা যাচাই করুন</li><li>আপনার ফায়ারওয়াল বা সিকিউরিটি সেটিংস চেক করুন</li></ul><h5>❌ সমস্যা: \"Invalid App ID or Secret\"</h5><p><b>সমাধান:</b></p><ul><li>Facebook Developer Dashboard থেকে সঠিক credentials কপি করুন</li><li>কোনো অতিরিক্ত স্পেস নেই কিনা চেক করুন</li><li>পুরো App ID এবং Secret কপি হয়েছে কিনা নিশ্চিত করুন</li></ul><h5>❌ সমস্যা: \"Page access denied\"</h5><p><b>সমাধান:</b></p><ul><li>নিশ্চিত করুন যে আপনি আপনার নিজের Page এর অ্যাডমিন</li><li>নতুন Page Access Token জেনারেট করুন</li><li>পুরানো token মুছে দিন এবং নতুন একটি তৈরি করুন</li></ul><h5>❌ সমস্যা: বার্তা ERPNext এ দেখা যাচ্ছে না</h5><p><b>সমাধান:</b></p><ul><li>Webhook events সঠিকভাবে subscribe করা হয়েছে কিনা চেক করুন</li><li>আপনার সাইটের logs দেখুন</li><li>Facebook Settings এ \"Webhook Verified\" চেক করুন</li><li>Webhook এর জন্য সঠিক permissions আছে কিনা যাচাই করুন</li></ul>"
+		},
+		{
+			"fieldname": "faq_section",
+			"fieldtype": "Section Break",
+			"label": "❓ Frequently Asked Questions"
+		},
+		{
+			"fieldname": "faq_html",
+			"fieldtype": "HTML",
+			"label": "FAQ",
+			"options": "<h5>Q: আমার Verification Token হারিয়ে গেছে, কী করব?</h5><p>A: <a href='javascript:void(0)' onclick=\"frappe.set_route('/app/facebook-settings')\">Facebook Settings</a> এ গিয়ে \"Generate Token\" বাটন ক্লিক করুন। নতুন token তৈরি হবে। তারপর Facebook Developer Dashboard এ যান এবং webhook configuration আপডেট করুন।</p><hr><h5>Q: আমার Page Access Token কখনো পরিবর্তন হয় কি?</h5><p>A: হ্যাঁ, সাধারণত token ৬০ দিন পরে expire হয়। তবে কিছু বিশেষ ধরনের token তার চেয়ে বেশি সময় থাকে। Facebook Dashboard এ নিয়মিত চেক করুন।</p><hr><h5>Q: আমি একাধিক Facebook Page এর সাথে সংযুক্ত করতে পারি?</h5><p>A: হ্যাঁ! প্রতিটি page এর জন্য একটি Facebook Page doc তৈরি করুন এবং সংবাদ ম্যানেজ করুন।</p><hr><h5>Q: আমার বার্তা পাঠানো হচ্ছে না, কেন?</h5><p>A: নিশ্চিত করুন যে:<ul><li>Page Access Token সঠিক এবং valid</li><li>আপনার Facebook Page এ sufficient permissions আছে</li><li>Webhook properly configured এবং verified</li></ul></p><hr><h5>Q: এটি কি secure?</h5><p>A: হ্যাঁ, সব credentials encrypted এবং secure রাখা হয়। কখনো অন্য কারো সাথে share করবেন না।</p>"
+		}
+	],
+	"issingle": 0,
+	"links": [],
+	"modified": "2026-05-29 00:00:00.000000",
+	"modified_by": "Administrator",
+	"module": "Facebook",
+	"name": "Facebook Integration Guide",
+	"owner": "Administrator",
+	"permissions": [
+		{
+			"read": 1,
+			"role": "All"
+		}
+	],
+	"sort_field": "modified",
+	"sort_order": "DESC",
+	"states": []
+}

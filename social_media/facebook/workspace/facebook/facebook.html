@@ -1,0 +1,690 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.dash{padding:1rem 0}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.fb-logo{width:32px;height:32px;border-radius:8px;background:#1877F2;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700;flex-shrink:0}
+.page-name{font-size:15px;font-weight:500;color:var(--color-text-primary)}
+.page-sub{font-size:12px;color:var(--color-text-secondary)}
+.btn{padding:6px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;font-size:13px;cursor:pointer;color:var(--color-text-primary);display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--color-background-secondary)}
+.btn-primary{background:#1877F2;border-color:#1877F2;color:#fff}
+.btn-primary:hover{background:#166fe5}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:14px 16px}
+.metric-label{font-size:12px;color:var(--color-text-secondary);margin-bottom:4px}
+.metric-val{font-size:22px;font-weight:500;color:var(--color-text-primary)}
+.metric-change{font-size:11px;margin-top:3px}
+.up{color:#1a9e5c}
+.down{color:#d94f4f}
+.tabs{display:flex;gap:4px;margin-bottom:1.25rem;border-bottom:0.5px solid var(--color-border-tertiary);padding-bottom:0}
+.tab{padding:8px 14px;font-size:13px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-0.5px}
+.tab.active{color:#1877F2;border-bottom-color:#1877F2;font-weight:500}
+.tab:hover:not(.active){color:var(--color-text-primary)}
+.section{display:none}
+.section.active{display:block}
+.posts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.post-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden}
+.post-img{width:100%;height:110px;background:var(--color-background-secondary);display:flex;align-items:center;justify-content:center;color:var(--color-text-tertiary);font-size:13px;position:relative;overflow:hidden}
+.post-img img{width:100%;height:100%;object-fit:cover}
+.post-body{padding:12px}
+.post-text{font-size:13px;color:var(--color-text-primary);line-height:1.5;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.post-meta{display:flex;align-items:center;justify-content:space-between}
+.post-stats{display:flex;gap:12px}
+.stat-item{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--color-text-secondary)}
+.status-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
+.badge-pub{background:#e6f4ea;color:#1a7a3c}
+.badge-sch{background:#e8f0fe;color:#1a56c2}
+.badge-draft{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.badge-ai{background:#f3e8ff;color:#7c3aed}
+.schedule-row{display:flex;gap:8px;margin-bottom:0.75rem;align-items:flex-start}
+.sch-time{min-width:60px;text-align:right;font-size:12px;color:var(--color-text-secondary);padding-top:10px}
+.sch-card{flex:1;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.sch-card:hover{background:var(--color-background-secondary)}
+.sch-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+.sch-info{flex:1}
+.sch-title{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+.sch-sub{font-size:12px;color:var(--color-text-secondary)}
+.ai-section{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem}
+.ai-header{display:flex;align-items:center;gap:8px;margin-bottom:1rem}
+.ai-badge{background:#f3e8ff;color:#7c3aed;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-label{font-size:12px;color:var(--color-text-secondary);margin-bottom:4px}
+select,input,textarea{width:100%;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);padding:7px 10px;font-size:13px;background:var(--color-background-primary);color:var(--color-text-primary)}
+textarea{resize:vertical;min-height:70px;line-height:1.5}
+.output-box{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px;font-size:13px;line-height:1.6;color:var(--color-text-primary);min-height:80px;margin:10px 0;white-space:pre-wrap}
+.action-row{display:flex;gap:8px;margin-top:10px}
+.chart-wrap{position:relative;height:200px;margin-bottom:1.5rem}
+.chart-legend{display:flex;gap:16px;margin-bottom:10px;font-size:12px;color:var(--color-text-secondary)}
+.legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px}
+.audience-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:1rem}
+.audience-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:14px}
+.aud-title{font-size:12px;color:var(--color-text-secondary);margin-bottom:10px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.bar-label{font-size:12px;color:var(--color-text-primary);min-width:60px}
+.bar-track{flex:1;height:6px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px}
+.bar-val{font-size:12px;color:var(--color-text-secondary);min-width:30px;text-align:right}
+.loading-dots{display:inline-block}
+.loading-dots::after{content:'';animation:dots 1.2s steps(4,end) infinite}
+@keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}100%{content:'...'}}
+</style>
+<div class="dash">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="fb-logo">f</div>
+      <div>
+        <div class="page-name">Dress Up Official</div>
+        <div class="page-sub">Facebook Page · 12,840 followers</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="switchTab('schedule')"><i class="ti ti-calendar" aria-hidden="true"></i> Schedule</button>
+      <button class="btn btn-primary" onclick="switchTab('create')"><i class="ti ti-sparkles" aria-hidden="true"></i> AI Post</button>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Page reach</div>
+      <div class="metric-val">48,320</div>
+      <div class="metric-change up"><i class="ti ti-trending-up" aria-hidden="true"></i> +12% this week</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Post engagement</div>
+      <div class="metric-val">3,214</div>
+      <div class="metric-change up"><i class="ti ti-trending-up" aria-hidden="true"></i> +8%</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Scheduled posts</div>
+      <div class="metric-val">7</div>
+      <div class="metric-change" style="color:var(--color-text-secondary)">Next: Today 6:00 PM</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Page followers</div>
+      <div class="metric-val">12,840</div>
+      <div class="metric-change up"><i class="ti ti-trending-up" aria-hidden="true"></i> +43 today</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('posts')" id="tab-posts">Posts</div>
+    <div class="tab" onclick="switchTab('schedule')" id="tab-schedule">Scheduled</div>
+    <div class="tab" onclick="switchTab('create')" id="tab-create">AI Generator</div>
+    <div class="tab" onclick="switchTab('features')" id="tab-features">Features</div>
+    <div class="tab" onclick="switchTab('analytics')" id="tab-analytics">Analytics</div>
+  </div>
+  <!-- POSTS -->
+  <div class="section active" id="sec-posts">
+    <div class="posts-grid">
+      <div class="post-card">
+        <div class="post-img" style="background:linear-gradient(135deg,#667eea22,#764ba222)">
+          <i class="ti ti-shirt" style="font-size:40px;color:var(--color-text-tertiary)" aria-hidden="true"></i>
+        </div>
+        <div class="post-body">
+          <div class="post-text">🌟 নতুন Summer Collection এসে গেছে! এই গরমে থাকুন cool আর stylish। সীমিত stock — এখনই অর্ডার করুন!</div>
+          <div class="post-meta">
+            <div class="post-stats">
+              <span class="stat-item"><i class="ti ti-heart" aria-hidden="true"></i> 284</span>
+              <span class="stat-item"><i class="ti ti-message-circle" aria-hidden="true"></i> 42</span>
+              <span class="stat-item"><i class="ti ti-share" aria-hidden="true"></i> 18</span>
+            </div>
+            <span class="status-badge badge-pub">Published</span>
+          </div>
+        </div>
+      </div>
+      <div class="post-card">
+        <div class="post-img" style="background:linear-gradient(135deg,#f093fb22,#f5576c22)">
+          <i class="ti ti-discount" style="font-size:40px;color:var(--color-text-tertiary)" aria-hidden="true"></i>
+        </div>
+        <div class="post-body">
+          <div class="post-text">🔥 Special Eid Offer! সব পোশাকে ২০% ছাড়। অফার চলবে ৩ দিন। Miss করবেন না!</div>
+          <div class="post-meta">
+            <div class="post-stats">
+              <span class="stat-item"><i class="ti ti-heart" aria-hidden="true"></i> 512</span>
+              <span class="stat-item"><i class="ti ti-message-circle" aria-hidden="true"></i> 89</span>
+              <span class="stat-item"><i class="ti ti-share" aria-hidden="true"></i> 67</span>
+            </div>
+            <span class="status-badge badge-pub">Published</span>
+          </div>
+        </div>
+      </div>
+      <div class="post-card">
+        <div class="post-img" style="background:linear-gradient(135deg,#4facfe22,#00f2fe22)">
+          <i class="ti ti-sparkles" style="font-size:40px;color:var(--color-text-tertiary)" aria-hidden="true"></i>
+        </div>
+        <div class="post-body">
+          <div class="post-text">✨ AI দিয়ে তৈরি — নতুন Winter Jacket collection আসছে! Pre-order করুন এখনই, পাবেন exclusive discount।</div>
+          <div class="post-meta">
+            <div class="post-stats">
+              <span class="stat-item"><i class="ti ti-clock" aria-hidden="true"></i> Today 6 PM</span>
+            </div>
+            <div style="display:flex;gap:6px">
+              <span class="status-badge badge-ai">AI</span>
+              <span class="status-badge badge-sch">Scheduled</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="post-card">
+        <div class="post-img" style="background:linear-gradient(135deg,#a8edea22,#fed6e322)">
+          <i class="ti ti-photo" style="font-size:40px;color:var(--color-text-tertiary)" aria-hidden="true"></i>
+        </div>
+        <div class="post-body">
+          <div class="post-text">👗 Customer spotlight! আমাদের loyal customer রাহেলা আপা-র Dress Up look। আপনার look share করুন!</div>
+          <div class="post-meta">
+            <div class="post-stats">
+              <span class="stat-item"><i class="ti ti-clock" aria-hidden="true"></i> Tomorrow</span>
+            </div>
+            <span class="status-badge badge-draft">Draft</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- SCHEDULE -->
+  <div class="section" id="sec-schedule">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Today — May 28, 2026</div>
+      <button class="btn" onclick="sendPrompt('নতুন scheduled post তৈরি করতে চাই')"><i class="ti ti-plus" aria-hidden="true"></i> Add post</button>
+    </div>
+    
+    <div class="schedule-row">
+      <div class="sch-time">9:00 AM</div>
+      <div class="sch-card">
+        <div class="sch-icon" style="background:#e8f0fe">
+          <i class="ti ti-sparkles" style="color:#1877F2;font-size:18px" aria-hidden="true"></i>
+        </div>
+        <div class="sch-info">
+          <div class="sch-title">Morning product feature — AI generated</div>
+          <div class="sch-sub">New Arrival · Kurti Collection · Auto from Item</div>
+        </div>
+        <span class="status-badge badge-sch">Ready</span>
+      </div>
+    </div>
+    
+    <div class="schedule-row">
+      <div class="sch-time">1:00 PM</div>
+      <div class="sch-card">
+        <div class="sch-icon" style="background:#e6f4ea">
+          <i class="ti ti-discount" style="color:#1a7a3c;font-size:18px" aria-hidden="true"></i>
+        </div>
+        <div class="sch-info">
+          <div class="sch-title">Afternoon promo post</div>
+          <div class="sch-sub">Flash sale · 15% off · Manual</div>
+        </div>
+        <span class="status-badge badge-sch">Ready</span>
+      </div>
+    </div>
+    
+    <div class="schedule-row">
+      <div class="sch-time">6:00 PM</div>
+      <div class="sch-card" style="border-color:#1877F2">
+        <div class="sch-icon" style="background:#e8f0fe">
+          <i class="ti ti-clock" style="color:#1877F2;font-size:18px" aria-hidden="true"></i>
+        </div>
+        <div class="sch-info">
+          <div class="sch-title">Evening Winter Jacket teaser — AI</div>
+          <div class="sch-sub">Upcoming collection · High priority</div>
+        </div>
+        <span class="status-badge badge-ai">AI + Sch</span>
+      </div>
+    </div>
+    
+    <div style="margin-top:1.25rem;font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:0.75rem">Tomorrow</div>
+    
+    <div class="schedule-row">
+      <div class="sch-time">10:00 AM</div>
+      <div class="sch-card">
+        <div class="sch-icon" style="background:#fef3c7">
+          <i class="ti ti-star" style="color:#92400e;font-size:18px" aria-hidden="true"></i>
+        </div>
+        <div class="sch-info">
+          <div class="sch-title">Customer review highlight</div>
+          <div class="sch-sub">Loyalty tier customer · Auto-trigger on Gold</div>
+        </div>
+        <span class="status-badge badge-draft">Draft</span>
+      </div>
+    </div>
+    
+    <div class="schedule-row">
+      <div class="sch-time">8:00 PM</div>
+      <div class="sch-card">
+        <div class="sch-icon" style="background:#f3e8ff">
+          <i class="ti ti-chart-bar" style="color:#7c3aed;font-size:18px" aria-hidden="true"></i>
+        </div>
+        <div class="sch-info">
+          <div class="sch-title">Daily sales milestone post — AI</div>
+          <div class="sch-sub">Auto-trigger when sales &gt; 50,000 BDT</div>
+        </div>
+        <span class="status-badge badge-ai">Auto</span>
+      </div>
+    </div>
+  </div>
+  <!-- AI GENERATOR -->
+  <div class="section" id="sec-create">
+    <div class="ai-section">
+      <div class="ai-header">
+        <i class="ti ti-robot" style="font-size:20px;color:#7c3aed" aria-hidden="true"></i>
+        <span style="font-size:15px;font-weight:500;color:var(--color-text-primary)">AI Post Generator</span>
+        <span class="ai-badge">Claude powered</span>
+      </div>
+      
+      <div class="form-row">
+        <div>
+          <div class="form-label">Post type</div>
+          <select id="post-type">
+            <option>New product launch</option>
+            <option>Discount / offer</option>
+            <option>Customer spotlight</option>
+            <option>Brand story</option>
+            <option>Sales milestone</option>
+            <option>Stock alert</option>
+            <option>Seasonal / occasion</option>
+          </select>
+        </div>
+        <div>
+          <div class="form-label">Language style</div>
+          <select id="lang-style">
+            <option>Banglish (Bengali + English)</option>
+            <option>Pure Bengali</option>
+            <option>English only</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div>
+          <div class="form-label">Link to ERPNext item (optional)</div>
+          <input type="text" id="erpnext-item" placeholder="e.g. DU-KURTI-001" />
+        </div>
+        <div>
+          <div class="form-label">Tone</div>
+          <select id="tone">
+            <option>Exciting & fun</option>
+            <option>Professional</option>
+            <option>Warm & friendly</option>
+            <option>Urgency / FOMO</option>
+          </select>
+        </div>
+      </div>
+      
+      <div>
+        <div class="form-label">Post idea / prompt</div>
+        <textarea id="ai-prompt" placeholder="যেমন: নতুন summer kurti collection launch হয়েছে, দাম ৮৫০-১২০০ টাকা, limited stock আছে..."></textarea>
+      </div>
+      
+      <div class="action-row">
+        <button class="btn btn-primary" onclick="generatePost()" id="gen-btn"><i class="ti ti-sparkles" aria-hidden="true"></i> Generate post</button>
+        <button class="btn" onclick="clearOutput()"><i class="ti ti-refresh" aria-hidden="true"></i> Clear</button>
+      </div>
+      
+      <div id="output-area" style="display:none">
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-top:1rem;margin-bottom:4px">Generated content</div>
+        <div class="output-box" id="gen-output"></div>
+        
+        <div class="form-row" style="margin-top:10px">
+          <div>
+            <div class="form-label">Schedule date & time</div>
+            <input type="datetime-local" id="sched-dt" />
+          </div>
+          <div>
+            <div class="form-label">Attach image</div>
+            <input type="text" placeholder="Image URL or ERPNext file path" />
+          </div>
+        </div>
+        
+        <div class="action-row">
+          <button class="btn btn-primary" onclick="sendPrompt('Generated post টা schedule করে publish করতে চাই ↗')"><i class="ti ti-calendar" aria-hidden="true"></i> Schedule post ↗</button>
+          <button class="btn" onclick="sendPrompt('এই post টা আরেকটু edit করতে চাই ↗')"><i class="ti ti-edit" aria-hidden="true"></i> Edit ↗</button>
+          <button class="btn" onclick="copyPost()"><i class="ti ti-copy" aria-hidden="true"></i> Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- FEATURES -->
+  <div class="section" id="sec-features">
+    <div style="margin-bottom:1.5rem">
+      <h3 style="font-size:15px;font-weight:500;color:var(--color-text-primary);margin-bottom:0.5rem">Facebook Automation Features</h3>
+      <p style="font-size:12px;color:var(--color-text-secondary)">Automate your Facebook presence with AI-powered tools</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">
+      <div class="ai-section" style="border-left:3px solid #1877F2">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem">
+          <div style="width:36px;height:36px;border-radius:8px;background:#e8f0fe;display:flex;align-items:center;justify-content:center">
+            <i class="ti ti-message-circle" style="color:#1877F2;font-size:18px" aria-hidden="true"></i>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Automatic Message Reply</div>
+            <div style="font-size:12px;color:var(--color-text-secondary)">Instant auto-replies for Facebook Page messages</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--color-text-secondary);padding-left:46px">
+          <p style="margin:4px 0">✅ Real-time message detection</p>
+          <p style="margin:4px 0">✅ Customizable auto-reply templates</p>
+          <p style="margin:4px 0">✅ Quick response suggestions</p>
+        </div>
+      </div>
+      
+      <div class="ai-section" style="border-left:3px solid #7c3aed">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem">
+          <div style="width:36px;height:36px;border-radius:8px;background:#f3e8ff;display:flex;align-items:center;justify-content:center">
+            <i class="ti ti-message-2" style="color:#7c3aed;font-size:18px" aria-hidden="true"></i>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">AI Comment Reply</div>
+            <div style="font-size:12px;color:var(--color-text-secondary)">Smart comment responses with AI</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--color-text-secondary);padding-left:46px">
+          <p style="margin:4px 0">✅ Sentiment analysis for comments</p>
+          <p style="margin:4px 0">✅ Context-aware AI responses</p>
+          <p style="margin:4px 0">✅ Manual approval before posting</p>
+        </div>
+      </div>
+      
+      <div class="ai-section" style="border-left:3px solid #1a9e5c">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem">
+          <div style="width:36px;height:36px;border-radius:8px;background:#e6f4ea;display:flex;align-items:center;justify-content:center">
+            <i class="ti ti-robot" style="color:#1a9e5c;font-size:18px" aria-hidden="true"></i>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Smart Response Gen</div>
+            <div style="font-size:12px;color:var(--color-text-secondary)">AI-powered response generation</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--color-text-secondary);padding-left:46px">
+          <p style="margin:4px 0">✅ Context-aware suggestions</p>
+          <p style="margin:4px 0">✅ Multiple response options</p>
+          <p style="margin:4px 0">✅ Tone customization</p>
+        </div>
+      </div>
+      
+      <div class="ai-section" style="border-left:3px solid #f59e0b">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem">
+          <div style="width:36px;height:36px;border-radius:8px;background:#fef3c7;display:flex;align-items:center;justify-content:center">
+            <i class="ti ti-calendar-clock" style="color:#f59e0b;font-size:18px" aria-hidden="true"></i>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Auto Post Publish</div>
+            <div style="font-size:12px;color:var(--color-text-secondary)">Scheduled and automatic post publishing</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--color-text-secondary);padding-left:46px">
+          <p style="margin:4px 0">✅ Smart scheduling algorithm</p>
+          <p style="margin:4px 0">✅ Optimal posting times</p>
+          <p style="margin:4px 0">✅ Bulk post publishing</p>
+        </div>
+      </div>
+      
+      <div class="ai-section" style="border-left:3px solid #f093fb">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem">
+          <div style="width:36px;height:36px;border-radius:8px;background:#fce7f3;display:flex;align-items:center;justify-content:center">
+            <i class="ti ti-photo" style="color:#f093fb;font-size:18px" aria-hidden="true"></i>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Image Interaction</div>
+            <div style="font-size:12px;color:var(--color-text-secondary)">Handle image and message interactions</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--color-text-secondary);padding-left:46px">
+          <p style="margin:4px 0">✅ Image recognition</p>
+          <p style="margin:4px 0">✅ Visual content suggestions</p>
+          <p style="margin:4px 0">✅ Media attachment support</p>
+        </div>
+      </div>
+      
+      <div class="ai-section" style="border-left:3px solid #3b82f6">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem">
+          <div style="width:36px;height:36px;border-radius:8px;background:#dbeafe;display:flex;align-items:center;justify-content:center">
+            <i class="ti ti-database" style="color:#3b82f6;font-size:18px" aria-hidden="true"></i>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">User Interaction Data</div>
+            <div style="font-size:12px;color:var(--color-text-secondary)">Save and analyze user interactions</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--color-text-secondary);padding-left:46px">
+          <p style="margin:4px 0">✅ Message history tracking</p>
+          <p style="margin:4px 0">✅ Comment analytics</p>
+          <p style="margin:4px 0">✅ Customer insights</p>
+        </div>
+      </div>
+      
+      <div class="ai-section" style="border-left:3px solid #ef4444">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem">
+          <div style="width:36px;height:36px;border-radius:8px;background:#fee2e2;display:flex;align-items:center;justify-content:center">
+            <i class="ti ti-bell" style="color:#ef4444;font-size:18px" aria-hidden="true"></i>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Admin Notifications</div>
+            <div style="font-size:12px;color:var(--color-text-secondary)">Real-time admin alerts</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--color-text-secondary);padding-left:46px">
+          <p style="margin:4px 0">✅ New message alerts</p>
+          <p style="margin:4px 0">✅ Comment notifications</p>
+          <p style="margin:4px 0">✅ Critical event alerts</p>
+        </div>
+      </div>
+    </div>
+    
+    <div style="margin-top:1.5rem;background:linear-gradient(135deg,#1877F2,#7c3aed);border-radius:var(--border-radius-lg);padding:1.5rem;color:#fff">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+        <i class="ti ti-rocket" style="font-size:24px"></i>
+        <h3 style="font-size:16px;font-weight:500">Ready to Automate?</h3>
+      </div>
+      <p style="margin-bottom:1rem;opacity:0.9">Enable these features to transform your Facebook presence. AI-powered automation helps you engage with customers 24/7 while saving time.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" style="background:#fff;color:#1877F2;border:none" onclick="switchTab('create')">Start with AI Generator</button>
+        <button class="btn" style="background:rgba(255,255,255,0.2);border:none;color:#fff" onclick="switchTab('features')">Configure Settings</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ANALYTICS -->
+  <div class="section" id="sec-analytics">
+    <div class="chart-legend">
+      <span><span class="legend-dot" style="background:#1877F2"></span>Reach</span>
+      <span><span class="legend-dot" style="background:#7c3aed"></span>Engagement</span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="analyticsChart" role="img" aria-label="Weekly reach and engagement chart">Weekly Facebook reach and engagement over 7 days.</canvas>
+    </div>
+    
+    <div class="audience-grid">
+      <div class="audience-card">
+        <div class="aud-title">Top post types by engagement</div>
+        <div class="bar-row">
+          <div class="bar-label">Product</div>
+          <div class="bar-track"><div class="bar-fill" style="width:82%;background:#1877F2"></div></div>
+          <div class="bar-val">82%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Offer</div>
+          <div class="bar-track"><div class="bar-fill" style="width:74%;background:#7c3aed"></div></div>
+          <div class="bar-val">74%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Story</div>
+          <div class="bar-track"><div class="bar-fill" style="width:48%;background:#1a9e5c"></div></div>
+          <div class="bar-val">48%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Customer</div>
+          <div class="bar-track"><div class="bar-fill" style="width:61%;background:#e67e22"></div></div>
+          <div class="bar-val">61%</div>
+        </div>
+      </div>
+      
+      <div class="audience-card">
+        <div class="aud-title">Audience by age</div>
+        <div class="bar-row">
+          <div class="bar-label">18–24</div>
+          <div class="bar-track"><div class="bar-fill" style="width:38%;background:#1877F2"></div></div>
+          <div class="bar-val">38%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">25–34</div>
+          <div class="bar-track"><div class="bar-fill" style="width:72%;background:#1877F2"></div></div>
+          <div class="bar-val">72%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">35–44</div>
+          <div class="bar-track"><div class="bar-fill" style="width:55%;background:#1877F2"></div></div>
+          <div class="bar-val">55%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">45+</div>
+          <div class="bar-track"><div class="bar-fill" style="width:21%;background:#1877F2"></div></div>
+          <div class="bar-val">21%</div>
+        </div>
+      </div>
+      
+      <div class="audience-card">
+        <div class="aud-title">Best posting times</div>
+        <div class="bar-row">
+          <div class="bar-label">6–8 PM</div>
+          <div class="bar-track"><div class="bar-fill" style="width:88%;background:#7c3aed"></div></div>
+          <div class="bar-val">88%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">12–2 PM</div>
+          <div class="bar-track"><div class="bar-fill" style="width:63%;background:#7c3aed"></div></div>
+          <div class="bar-val">63%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">9–11 AM</div>
+          <div class="bar-track"><div class="bar-fill" style="width:44%;background:#7c3aed"></div></div>
+          <div class="bar-val">44%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">8–10 PM</div>
+          <div class="bar-track"><div class="bar-fill" style="width:71%;background:#7c3aed"></div></div>
+          <div class="bar-val">71%</div>
+        </div>
+      </div>
+      
+      <div class="audience-card">
+        <div class="aud-title">AI vs manual posts</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+          <div style="flex:1;text-align:center">
+            <div style="font-size:24px;font-weight:500;color:#7c3aed">68%</div>
+            <div style="font-size:12px;color:var(--color-text-secondary)">AI generated</div>
+          </div>
+          <div style="width:0.5px;height:40px;background:var(--color-border-tertiary)"></div>
+          <div style="flex:1;text-align:center">
+            <div style="font-size:24px;font-weight:500;color:var(--color-text-primary)">32%</div>
+            <div style="font-size:12px;color:var(--color-text-secondary)">Manual</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:#1a9e5c"><i class="ti ti-trending-up" aria-hidden="true"></i> AI posts get 2.4x more reach</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.getElementById('sec-'+t).classList.add('active');
+  if(t==='analytics') initChart();
+}
+
+let chartInited=false;
+function initChart(){
+  if(chartInited)return;
+  chartInited=true;
+  const ctx=document.getElementById('analyticsChart');
+  new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets:[
+        {
+          label:'Reach',
+          data:[6200,8100,5800,9400,7200,12300,10800],
+          borderColor:'#1877F2',
+          backgroundColor:'#1877F215',
+          fill:true,
+          tension:0.4,
+          pointRadius:4,
+          pointBackgroundColor:'#1877F2'
+        },
+        {
+          label:'Engagement',
+          data:[420,580,390,710,520,980,840],
+          borderColor:'#7c3aed',
+          backgroundColor:'#7c3aed15',
+          fill:true,
+          tension:0.4,
+          pointRadius:4,
+          pointBackgroundColor:'#7c3aed',
+          yAxisID:'y2'
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{position:'left',grid:{color:'rgba(0,0,0,0.06)'},ticks:{font:{size:11},callback:v=>v>=1000?(v/1000).toFixed(1)+'k':v}},
+        y2:{position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:11}}},
+        x:{grid:{display:false},ticks:{font:{size:11}}}
+      }
+    }
+  });
+}
+
+const samplePosts = {
+  'New product launch': '🌟 নতুন Collection এসে গেছে Dress Up-এ!\n\nএই season-এর সবচেয়ে trendy design — এখন পাওয়া যাচ্ছে আমাদের সব শোরুমে।\n\n✅ Premium quality fabric\n✅ Exclusive design\n✅ Affordable price\n\nStock limited! এখনই order করুন 👇\n📞 01XXXXXXXXX\n🌐 dressup.com.bd\n\n#DressUp #NewArrival #Fashion #Bangladesh',
+  'Discount / offer': '🔥 MEGA OFFER চলছে!\n\nআজ থেকে ৩ দিন — সব পোশাকে ২০% ছাড়!\n\n⏰ Offer শেষ হওয়ার আগেই নিন\n🛍️ Visit our showroom or order online\n\nএই সুযোগ miss করলে পস্তাবেন! 😅\n\n#DressUp #Sale #Discount #EidOffer',
+  'Customer spotlight': '💖 আমাদের valued customer-দের ভালোবাসাই আমাদের শক্তি!\n\nDress Up পরিধান করে এত সুন্দর দেখাচ্ছেন! 😍\n\nআপনার Dress Up look share করুন এবং tag করুন @DressUpOfficial\n\nBest look of the month winner পাবেন special gift! 🎁\n\n#DressUp #CustomerLove #Fashion'
+};
+
+function generatePost(){
+  const type=document.getElementById('post-type').value;
+  const prompt=document.getElementById('ai-prompt').value;
+  const btn=document.getElementById('gen-btn');
+  const outArea=document.getElementById('output-area');
+  const outBox=document.getElementById('gen-output');
+  
+  btn.disabled=true;
+  btn.innerHTML='<i class="ti ti-loader" aria-hidden="true"></i> Generating<span class="loading-dots"></span>';
+  outArea.style.display='block';
+  outBox.textContent='';
+  
+  const content = samplePosts[type] || samplePosts['New product launch'];
+  let i=0;
+  const interval=setInterval(()=>{
+    if(i<content.length){
+      outBox.textContent+=content[i];
+      i+=2;
+    } else {
+      clearInterval(interval);
+      btn.disabled=false;
+      btn.innerHTML='<i class="ti ti-sparkles" aria-hidden="true"></i> Generate post';
+    }
+  },20);
+}
+
+function clearOutput(){
+  document.getElementById('output-area').style.display='none';
+  document.getElementById('ai-prompt').value='';
+  document.getElementById('gen-output').textContent='';
+}
+
+function copyPost(){
+  const text=document.getElementById('gen-output').textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=event.target.closest('button');
+    btn.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> Copied!';
+    setTimeout(()=>{ btn.innerHTML='<i class="ti ti-copy" aria-hidden="true"></i> Copy'; },1500);
+  });
+}
+</script>

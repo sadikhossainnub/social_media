@@ -1,0 +1,170 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "format:WSM-{####}",
+ "creation": "2026-05-08 03:45:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "instance",
+  "trigger_frequency",
+  "send_time",
+  "weekday",
+  "day_of_month",
+  "month_of_year",
+  "specific_date",
+  "recipient_type",
+  "employee",
+  "customer",
+  "recipient_fields",
+  "whatsapp_number",
+  "context_script",
+  "condition_expression",
+  "message",
+  "last_sent_on"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "instance",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Whatsapp Instance",
+   "options": "Whatsapp Instance",
+   "reqd": 1
+  },
+  {
+   "fieldname": "send_time",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "Daily Send Time",
+   "reqd": 1
+  },
+  {
+   "default": "Daily",
+   "fieldname": "trigger_frequency",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Trigger Frequency",
+   "options": "Daily\nWeekly\nMonthly\nYearly\nSpecific Date",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.trigger_frequency == 'Weekly'",
+   "fieldname": "weekday",
+   "fieldtype": "Select",
+   "label": "Weekday",
+   "options": "Monday\nTuesday\nWednesday\nThursday\nFriday\nSaturday\nSunday"
+  },
+  {
+   "depends_on": "eval:in_list(['Monthly', 'Yearly'], doc.trigger_frequency)",
+   "fieldname": "day_of_month",
+   "fieldtype": "Int",
+   "label": "Day of Month"
+  },
+  {
+   "depends_on": "eval:doc.trigger_frequency == 'Yearly'",
+   "fieldname": "month_of_year",
+   "fieldtype": "Select",
+   "label": "Month",
+   "options": "January\nFebruary\nMarch\nApril\nMay\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember"
+  },
+  {
+   "depends_on": "eval:doc.trigger_frequency == 'Specific Date'",
+   "fieldname": "specific_date",
+   "fieldtype": "Date",
+   "label": "Specific Date"
+  },
+  {
+   "fieldname": "recipient_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Recipient Type",
+   "options": "Employee\nCustomer\nCustom Number",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.recipient_type == 'Employee'",
+   "fieldname": "employee",
+   "fieldtype": "Table MultiSelect",
+   "label": "Employee",
+   "options": "Scheduled Whatsapp Message Employee"
+  },
+  {
+   "depends_on": "eval:doc.recipient_type == 'Customer'",
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "depends_on": "eval:in_list(['Employee', 'Customer'], doc.recipient_type)",
+   "description": "Comma-separated field names from selected Employee/Customer doctype. Example: cell_number, personal_mobile_no",
+   "fieldname": "recipient_fields",
+   "fieldtype": "Data",
+   "label": "Recipient Number Fields"
+  },
+  {
+   "depends_on": "eval:doc.recipient_type == 'Custom Number'",
+   "description": "Enter one WhatsApp number per line.",
+   "fieldname": "whatsapp_number",
+   "fieldtype": "Small Text",
+   "label": "Whatsapp Numbers (One Per Line)"
+  },
+  {
+   "description": "Optional Python dict via safe_eval. Example: {'doctype':'Machine','filters':{'name':'MCH-0001'}}",
+   "fieldname": "context_script",
+   "fieldtype": "Small Text",
+   "label": "Context Script"
+  },
+  {
+   "description": "Optional expression. Example: doc.qty*doc.rate=1040 or amount>500",
+   "fieldname": "condition_expression",
+   "fieldtype": "Data",
+   "label": "Condition Expression"
+  },
+  {
+   "description": "Jinja template supported. Example: Machine: {{ machine }} or {{ doc.machine }}",
+   "fieldname": "message",
+   "fieldtype": "Small Text",
+   "label": "Message Template",
+   "reqd": 1
+  },
+  {
+   "fieldname": "last_sent_on",
+   "fieldtype": "Date",
+   "label": "Last Sent On",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-08 03:45:00.000000",
+ "modified_by": "Administrator",
+ "module": "Whatsapp",
+ "name": "Scheduled Whatsapp Message",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,159 @@
+{
+ "actions": [],
+ "autoname": "FB-AR-.YYYY.-.#####",
+ "creation": "2026-05-28 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "DocType",
+ "document_type": "Document",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "facebook_page",
+  "enabled",
+  "auto_reply_section",
+  "trigger_type",
+  "keywords",
+  "message_type",
+  "reply_text",
+  "reply_media_section",
+  "reply_image",
+  "quick_replies",
+  "settings_section",
+  "delay_seconds",
+  "require_approval",
+  "ai_section",
+  "use_ai",
+  "ai_model",
+  "ai_prompt_template"
+ ],
+ "fields": [
+  {
+   "fieldname": "facebook_page",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Facebook Page",
+   "options": "Facebook Page",
+   "reqd": 1
+  },
+  {
+   "default": 1,
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "auto_reply_section",
+   "fieldtype": "Section Break",
+   "label": "Auto Reply Configuration"
+  },
+  {
+   "fieldname": "trigger_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Trigger Type",
+   "options": "All Messages\nKeyword Match\nMessage Sentiment\nImage Detected",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval: doc.trigger_type == 'Keyword Match'",
+   "fieldname": "keywords",
+   "fieldtype": "Code",
+   "label": "Keywords (comma separated)"
+  },
+  {
+   "fieldname": "message_type",
+   "fieldtype": "Select",
+   "label": "Message Type",
+   "options": "Text\nImage + Text\nTemplate"
+  },
+  {
+   "fieldname": "reply_text",
+   "fieldtype": "Text Editor",
+   "label": "Reply Text"
+  },
+  {
+   "fieldname": "reply_media_section",
+   "fieldtype": "Section Break",
+   "label": "Media Settings"
+  },
+  {
+   "fieldname": "reply_image",
+   "fieldtype": "Attach",
+   "label": "Reply Image/Video"
+  },
+  {
+   "fieldname": "quick_replies",
+   "fieldtype": "Code",
+   "label": "Quick Replies (JSON format)"
+  },
+  {
+   "fieldname": "settings_section",
+   "fieldtype": "Section Break",
+   "label": "Additional Settings"
+  },
+  {
+   "default": 0,
+   "fieldname": "delay_seconds",
+   "fieldtype": "Int",
+   "label": "Reply Delay (seconds)"
+  },
+  {
+   "default": 0,
+   "fieldname": "require_approval",
+   "fieldtype": "Check",
+   "label": "Require Admin Approval Before Sending"
+  },
+  {
+   "fieldname": "ai_section",
+   "fieldtype": "Section Break",
+   "label": "AI Configuration"
+  },
+  {
+   "default": 0,
+   "fieldname": "use_ai",
+   "fieldtype": "Check",
+   "label": "Use AI for Response Generation"
+  },
+  {
+   "depends_on": "eval: doc.use_ai == 1",
+   "fieldname": "ai_model",
+   "fieldtype": "Select",
+   "label": "AI Model",
+   "options": "Claude 3.5 Sonnet\nClaude 3 Opus\nGPT-4\nGemini Pro"
+  },
+  {
+   "depends_on": "eval: doc.use_ai == 1",
+   "fieldname": "ai_prompt_template",
+   "fieldtype": "Text Editor",
+   "label": "AI Prompt Template"
+  }
+ ],
+ "icon": "fa-comments",
+ "idx": 1,
+ "image_field": "reply_image",
+ "links": [],
+ "modified": "2026-05-28 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Facebook",
+ "name": "Facebook Auto Reply",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -1,0 +1,178 @@
+{
+    "actions": [],
+    "allow_rename": 1,
+    "creation": "2026-05-28 00:00:00.000000",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "post_info_section",
+        "post_id",
+        "page",
+        "page_name",
+        "status",
+        "column_break_1",
+        "message",
+        "created_time",
+        "updated_time",
+        "media_section",
+        "media_type",
+        "media_url",
+        "link_section",
+        "link_url",
+        "link_name",
+        "link_caption",
+        "reactions_section",
+        "like_count",
+        "comment_count",
+        "share_count",
+        "reactions",
+        "comments_section",
+        "comments_html"
+    ],
+    "fields": [
+        {
+            "fieldname": "post_id",
+            "fieldtype": "Data",
+            "label": "Post ID",
+            "reqd": 1,
+            "unique": 1,
+            "in_list_view": 1
+        },
+        {
+            "fieldname": "page",
+            "fieldtype": "Link",
+            "label": "Facebook Page",
+            "options": "Facebook Page",
+            "reqd": 1,
+            "in_list_view": 1
+        },
+        {
+            "fieldname": "page_name",
+            "fieldtype": "Data",
+            "label": "Page Name",
+            "read_only": 1
+        },
+        {
+            "fieldname": "status",
+            "fieldtype": "Select",
+            "label": "Status",
+            "options": "Active\nArchived\nDeleted",
+            "default": "Active",
+            "read_only": 1
+        },
+        {
+            "fieldname": "column_break_1",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "message",
+            "fieldtype": "Text Editor",
+            "label": "Message"
+        },
+        {
+            "fieldname": "created_time",
+            "fieldtype": "Datetime",
+            "label": "Created Time"
+        },
+        {
+            "fieldname": "updated_time",
+            "fieldtype": "Datetime",
+            "label": "Updated Time"
+        },
+        {
+            "fieldname": "media_section",
+            "fieldtype": "Section Break",
+            "label": "Media"
+        },
+        {
+            "fieldname": "media_type",
+            "fieldtype": "Data",
+            "label": "Media Type"
+        },
+        {
+            "fieldname": "media_url",
+            "fieldtype": "Data",
+            "label": "Media URL"
+        },
+        {
+            "fieldname": "link_section",
+            "fieldtype": "Section Break",
+            "label": "Link"
+        },
+        {
+            "fieldname": "link_url",
+            "fieldtype": "Data",
+            "label": "Link URL"
+        },
+        {
+            "fieldname": "link_name",
+            "fieldtype": "Data",
+            "label": "Link Name"
+        },
+        {
+            "fieldname": "link_caption",
+            "fieldtype": "Data",
+            "label": "Link Caption"
+        },
+        {
+            "fieldname": "reactions_section",
+            "fieldtype": "Section Break",
+            "label": "Reactions"
+        },
+        {
+            "fieldname": "like_count",
+            "fieldtype": "Int",
+            "label": "Like Count"
+        },
+        {
+            "fieldname": "comment_count",
+            "fieldtype": "Int",
+            "label": "Comment Count"
+        },
+        {
+            "fieldname": "share_count",
+            "fieldtype": "Int",
+            "label": "Share Count"
+        },
+        {
+            "fieldname": "reactions",
+            "fieldtype": "Code",
+            "label": "Reactions",
+            "default": "{}"
+        },
+        {
+            "fieldname": "comments_section",
+            "fieldtype": "Section Break",
+            "label": "Comments"
+        },
+        {
+            "fieldname": "comments_html",
+            "fieldtype": "HTML",
+            "label": "Comments"
+        }
+    ],
+    "index_web_pages_for_search": 1,
+    "links": [],
+    "modified": "2026-05-28 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Facebook",
+    "name": "Facebook Post",
+    "naming_rule": "By fieldname",
+    "autoname": "field:post_id",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "print": 1,
+            "read": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
+}

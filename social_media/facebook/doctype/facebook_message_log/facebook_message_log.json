@@ -1,0 +1,109 @@
+{
+    "actions": [],
+    "allow_rename": 1,
+    "creation": "2026-05-28 00:00:00.000000",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "instance",
+        "direction",
+        "status",
+        "timestamp",
+        "column_break_1",
+        "sender_psid",
+        "recipient_psid",
+        "message_id",
+        "section_break_1",
+        "message_text",
+        "attachments"
+    ],
+    "fields": [
+        {
+            "fieldname": "instance",
+            "fieldtype": "Link",
+            "label": "Facebook Page",
+            "options": "Facebook Page",
+            "reqd": 1
+        },
+        {
+            "fieldname": "direction",
+            "fieldtype": "Select",
+            "label": "Direction",
+            "options": "Inbound\nOutbound",
+            "reqd": 1
+        },
+        {
+            "fieldname": "status",
+            "fieldtype": "Select",
+            "label": "Status",
+            "options": "Queued\nSent\nDelivered\nRead\nFailed",
+            "default": "Queued"
+        },
+        {
+            "fieldname": "timestamp",
+            "fieldtype": "Datetime",
+            "label": "Timestamp",
+            "default": "Now"
+        },
+        {
+            "fieldname": "column_break_1",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "sender_psid",
+            "fieldtype": "Data",
+            "label": "Sender PSID"
+        },
+        {
+            "fieldname": "recipient_psid",
+            "fieldtype": "Data",
+            "label": "Recipient PSID"
+        },
+        {
+            "fieldname": "message_id",
+            "fieldtype": "Data",
+            "label": "External Message ID",
+            "read_only": 1
+        },
+        {
+            "fieldname": "section_break_1",
+            "fieldtype": "Section Break",
+            "label": "Content"
+        },
+        {
+            "fieldname": "message_text",
+            "fieldtype": "Text",
+            "label": "Message Text"
+        },
+        {
+            "fieldname": "attachments",
+            "fieldtype": "Code",
+            "label": "Attachments",
+            "read_only": 1,
+            "default": "[]"
+        }
+    ],
+    "index_web_pages_for_search": 1,
+    "links": [],
+    "modified": "2026-05-28 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Facebook",
+    "name": "Facebook Message Log",
+    "naming_rule": "Random",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "print": 1,
+            "read": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
+}

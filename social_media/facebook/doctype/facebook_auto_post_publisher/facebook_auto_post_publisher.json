@@ -1,0 +1,157 @@
+{
+ "actions": [],
+ "autoname": "FB-APP-.YYYY.-.#####",
+ "creation": "2026-05-28 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "DocType",
+ "document_type": "Document",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "facebook_page",
+  "post_section",
+  "facebook_post",
+  "post_content",
+  "post_image",
+  "scheduling_section",
+  "schedule_type",
+  "schedule_datetime",
+  "best_time_enabled",
+  "target_timezone",
+  "publish_section",
+  "publish_status",
+  "published_datetime",
+  "published_post_id",
+  "settings_section",
+  "auto_analyze_engagement",
+  "notify_on_publish"
+ ],
+ "fields": [
+  {
+   "fieldname": "facebook_page",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Facebook Page",
+   "options": "Facebook Page",
+   "reqd": 1
+  },
+  {
+   "fieldname": "post_section",
+   "fieldtype": "Section Break",
+   "label": "Post Details"
+  },
+  {
+   "fieldname": "facebook_post",
+   "fieldtype": "Link",
+   "label": "Facebook Post",
+   "options": "Facebook Post"
+  },
+  {
+   "fieldname": "post_content",
+   "fieldtype": "Text Editor",
+   "label": "Post Content"
+  },
+  {
+   "fieldname": "post_image",
+   "fieldtype": "Attach",
+   "label": "Post Image/Video"
+  },
+  {
+   "fieldname": "scheduling_section",
+   "fieldtype": "Section Break",
+   "label": "Scheduling"
+  },
+  {
+   "default": "Scheduled",
+   "fieldname": "schedule_type",
+   "fieldtype": "Select",
+   "label": "Schedule Type",
+   "options": "Immediate\nScheduled\nBest Time\nRecurring"
+  },
+  {
+   "depends_on": "eval: doc.schedule_type != 'Immediate'",
+   "fieldname": "schedule_datetime",
+   "fieldtype": "Datetime",
+   "label": "Schedule Date & Time"
+  },
+  {
+   "depends_on": "eval: doc.schedule_type == 'Best Time'",
+   "fieldname": "best_time_enabled",
+   "fieldtype": "Check",
+   "label": "Use AI-Calculated Best Time"
+  },
+  {
+   "default": "UTC",
+   "fieldname": "target_timezone",
+   "fieldtype": "Data",
+   "label": "Target Timezone"
+  },
+  {
+   "fieldname": "publish_section",
+   "fieldtype": "Section Break",
+   "label": "Publishing Status"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "publish_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nScheduled\nPublished\nFailed"
+  },
+  {
+   "fieldname": "published_datetime",
+   "fieldtype": "Datetime",
+   "label": "Actually Published At"
+  },
+  {
+   "fieldname": "published_post_id",
+   "fieldtype": "Data",
+   "label": "Facebook Post ID"
+  },
+  {
+   "fieldname": "settings_section",
+   "fieldtype": "Section Break",
+   "label": "Settings"
+  },
+  {
+   "default": 1,
+   "fieldname": "auto_analyze_engagement",
+   "fieldtype": "Check",
+   "label": "Auto-analyze Post Engagement"
+  },
+  {
+   "default": 1,
+   "fieldname": "notify_on_publish",
+   "fieldtype": "Check",
+   "label": "Notify Admin When Published"
+  }
+ ],
+ "icon": "fa-calendar-check",
+ "idx": 1,
+ "links": [],
+ "modified": "2026-05-28 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Facebook",
+ "name": "Facebook Auto Post Publisher",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

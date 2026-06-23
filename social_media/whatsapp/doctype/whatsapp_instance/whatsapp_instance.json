@@ -1,0 +1,117 @@
+{
+    "actions": [],
+    "allow_rename": 1,
+    "creation": "2024-02-11 10:00:00.000000",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "instance_name",
+        "integration",
+        "number",
+        "status",
+        "column_break_1",
+        "external_instance_id",
+        "apikey",
+        "phone_number",
+        "connection_section",
+        "qr_code_base64",
+        "qr_code_image"
+    ],
+    "fields": [
+        {
+            "fieldname": "instance_name",
+            "fieldtype": "Data",
+            "label": "Instance Name",
+            "reqd": 1,
+            "unique": 1,
+            "in_list_view": 1
+        },
+        {
+            "fieldname": "integration",
+            "fieldtype": "Select",
+            "label": "Integration",
+            "options": "WHATSAPP-BAILEYS\nWHATSAPP-BUSINESS\nEVOLUTION",
+            "default": "WHATSAPP-BAILEYS",
+            "description": "WhatsApp connection type"
+        },
+        {
+            "fieldname": "external_instance_id",
+            "fieldtype": "Data",
+            "label": "External Instance ID",
+            "read_only": 1
+        },
+        {
+            "fieldname": "apikey",
+            "fieldtype": "Data",
+            "label": "API Key (Hash)",
+            "read_only": 1,
+            "description": "Auto-generated from Evolution API response"
+        },
+        {
+            "fieldname": "number",
+            "fieldtype": "Data",
+            "label": "WhatsApp Number",
+            "description": "With country code (e.g., 8801XXXXXXXXX)"
+        },
+        {
+            "fieldname": "status",
+            "fieldtype": "Select",
+            "label": "Status",
+            "options": "Disconnected\nConnecting\nConnected",
+            "default": "Disconnected",
+            "read_only": 1,
+            "in_list_view": 1
+        },
+        {
+            "fieldname": "column_break_1",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "phone_number",
+            "fieldtype": "Data",
+            "label": "Connected Phone",
+            "read_only": 1,
+            "description": "Auto-populated when connected"
+        },
+        {
+            "fieldname": "connection_section",
+            "fieldtype": "Section Break",
+            "label": "Connection"
+        },
+        {
+            "fieldname": "qr_code_base64",
+            "fieldtype": "Long Text",
+            "label": "QR Code (Base64)",
+            "hidden": 1
+        },
+        {
+            "fieldname": "qr_code_image",
+            "fieldtype": "HTML",
+            "label": "Scan QR Code"
+        }
+    ],
+    "index_web_pages_for_search": 1,
+    "links": [],
+    "modified": "2024-02-14 19:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Whatsapp",
+    "name": "Whatsapp Instance",
+    "naming_rule": "By fieldname",
+    "autoname": "field:instance_name",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "print": 1,
+            "read": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
+}

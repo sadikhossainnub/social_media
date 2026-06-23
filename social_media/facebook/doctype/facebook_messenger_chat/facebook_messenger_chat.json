@@ -1,0 +1,110 @@
+{
+    "actions": [],
+    "allow_rename": 1,
+    "creation": "2026-05-29 00:00:00.000000",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "sender_section",
+        "sender_id",
+        "sender_name",
+        "customer",
+        "column_break_1",
+        "direction",
+        "timestamp",
+        "message_section",
+        "message",
+        "is_read",
+        "attachments"
+    ],
+    "fields": [
+        {
+            "fieldname": "sender_section",
+            "fieldtype": "Section Break",
+            "label": "Sender Information"
+        },
+        {
+            "fieldname": "sender_id",
+            "fieldtype": "Data",
+            "label": "Sender ID (PSID)",
+            "read_only": 1
+        },
+        {
+            "fieldname": "sender_name",
+            "fieldtype": "Data",
+            "label": "Sender Name",
+            "read_only": 1
+        },
+        {
+            "fieldname": "customer",
+            "fieldtype": "Link",
+            "label": "Customer",
+            "options": "Customer",
+            "read_only": 1
+        },
+        {
+            "fieldname": "column_break_1",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "direction",
+            "fieldtype": "Select",
+            "label": "Direction",
+            "options": "Incoming\nOutgoing",
+            "read_only": 1
+        },
+        {
+            "fieldname": "timestamp",
+            "fieldtype": "Datetime",
+            "label": "Timestamp",
+            "default": "Now",
+            "read_only": 1
+        },
+        {
+            "fieldname": "message_section",
+            "fieldtype": "Section Break",
+            "label": "Message"
+        },
+        {
+            "fieldname": "message",
+            "fieldtype": "Long Text",
+            "label": "Message"
+        },
+        {
+            "fieldname": "is_read",
+            "fieldtype": "Check",
+            "label": "Is Read",
+            "default": 0
+        },
+        {
+            "fieldname": "attachments",
+            "fieldtype": "Code",
+            "label": "Attachments",
+            "read_only": 1,
+            "default": "[]"
+        }
+    ],
+    "index_web_pages_for_search": 1,
+    "links": [],
+    "modified": "2026-05-29 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Facebook",
+    "name": "Facebook Messenger Chat",
+    "naming_rule": "Random",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "print": 1,
+            "read": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
+}

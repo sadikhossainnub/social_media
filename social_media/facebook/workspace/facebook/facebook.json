@@ -1,0 +1,211 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"header_main\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Facebook Automation Dashboard</span>\",\"col\":12}},{\"id\":\"auto_reply_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Facebook Auto Reply\",\"col\":3}},{\"id\":\"comment_reply_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Facebook AI Comment Reply\",\"col\":3}},{\"id\":\"smart_response_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Facebook Smart Response\",\"col\":3}},{\"id\":\"publisher_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Facebook Auto Post Publisher\",\"col\":3}},{\"id\":\"spacer_1\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"header_core\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h6\\\">Core Features</span>\",\"col\":12}},{\"id\":\"page_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Facebook Page\",\"col\":3}},{\"id\":\"post_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Facebook Post\",\"col\":3}},{\"id\":\"comment_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Facebook Comment\",\"col\":3}},{\"id\":\"message_log_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Facebook Message Log\",\"col\":3}}]",
+ "creation": "2026-05-28 00:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "idx": 0,
+ "indicator_color": "blue",
+ "is_hidden": 0,
+ "label": "Facebook",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Automation",
+   "link_count": 4,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Facebook Auto Reply",
+   "link_count": 0,
+   "link_to": "Facebook Auto Reply",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Facebook AI Comment Reply",
+   "link_count": 0,
+   "link_to": "Facebook AI Comment Reply",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Facebook Smart Response",
+   "link_count": 0,
+   "link_to": "Facebook Smart Response",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Facebook Auto Post Publisher",
+   "link_count": 0,
+   "link_to": "Facebook Auto Post Publisher",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Core",
+   "link_count": 7,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Facebook Page",
+   "link_count": 0,
+   "link_to": "Facebook Page",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Facebook Lead Form",
+   "link_count": 0,
+   "link_to": "Facebook Lead Form",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Facebook Post",
+   "link_count": 0,
+   "link_to": "Facebook Post",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Facebook Comment",
+   "link_count": 0,
+   "link_to": "Facebook Comment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Facebook Message Log",
+   "link_count": 0,
+   "link_to": "Facebook Message Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Facebook Notification",
+   "link_count": 0,
+   "link_to": "Facebook Notification",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-05-28 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Facebook",
+ "name": "Facebook",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "Social Media",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 42.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "Facebook Settings",
+   "link_to": "Facebook Settings",
+   "type": "DocType"
+  },
+  {
+   "color": "Purple",
+   "doc_view": "List",
+   "label": "Auto Reply",
+   "link_to": "Facebook Auto Reply",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Purple",
+   "doc_view": "List",
+   "label": "Comment AI Reply",
+   "link_to": "Facebook AI Comment Reply",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Green",
+   "doc_view": "List",
+   "label": "Smart Response",
+   "link_to": "Facebook Smart Response",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Orange",
+   "doc_view": "List",
+   "label": "Auto Publisher",
+   "link_to": "Facebook Auto Post Publisher",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "New",
+   "label": "Facebook Page",
+   "link_to": "Facebook Page",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "Facebook Post",
+   "link_to": "Facebook Post",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "Facebook Comment",
+   "link_to": "Facebook Comment",
+   "stats_filter": "[]",
+   "type": "DocType"
+  }
+ ],
+ "title": "Facebook"
+}

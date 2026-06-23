@@ -1,0 +1,122 @@
+{
+    "actions": [],
+    "allow_import": 1,
+    "autoname": "format:WAN-{document_type}-{####}",
+    "creation": "2024-05-23 12:00:00.000000",
+    "doctype": "DocType",
+    "editable_grid": 1,
+    "engine": "InnoDB",
+    "field_order": [
+        "enabled",
+        "document_type",
+        "event",
+        "date_changed",
+        "days_in_advance",
+        "condition",
+        "sb_recipient",
+        "instance",
+        "send_to",
+        "sb_message",
+        "message_template"
+    ],
+    "fields": [
+        {
+            "default": "1",
+            "fieldname": "enabled",
+            "fieldtype": "Check",
+            "label": "Enabled"
+        },
+        {
+            "fieldname": "document_type",
+            "fieldtype": "Link",
+            "in_list_view": 1,
+            "label": "Document Type",
+            "options": "DocType",
+            "reqd": 1
+        },
+        {
+            "fieldname": "event",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "label": "Event",
+            "options": "After Insert\nAfter Save\nOn Submit\nOn Cancel\nDays After\nDays Before",
+            "reqd": 1
+        },
+        {
+            "depends_on": "eval:in_list([\"Days After\", \"Days Before\"], doc.event)",
+            "description": "Send alert if date matches this field's value",
+            "fieldname": "date_changed",
+            "fieldtype": "Select",
+            "label": "Reference Date"
+        },
+        {
+            "default": "0",
+            "depends_on": "eval:in_list([\"Days After\", \"Days Before\"], doc.event)",
+            "description": "Send days before or after the reference date",
+            "fieldname": "days_in_advance",
+            "fieldtype": "Int",
+            "label": "Days Before or After"
+        },
+        {
+            "description": "Example: doc.status == 'Open'",
+            "fieldname": "condition",
+            "fieldtype": "Small Text",
+            "label": "Condition"
+        },
+        {
+            "fieldname": "sb_recipient",
+            "fieldtype": "Section Break",
+            "label": "Recipient"
+        },
+        {
+            "fieldname": "instance",
+            "fieldtype": "Link",
+            "label": "WhatsApp Instance",
+            "options": "Whatsapp Instance",
+            "reqd": 1
+        },
+        {
+            "description": "Recipient field name(s) (e.g., mobile_no) or hardcoded number(s). Separate multiple with commas.",
+            "fieldname": "send_to",
+            "fieldtype": "Data",
+            "label": "Send To (Fields or Numbers)",
+            "reqd": 1
+        },
+        {
+            "fieldname": "sb_message",
+            "fieldtype": "Section Break",
+            "label": "Message"
+        },
+        {
+            "description": "Jinja template. Example: Hello {{ doc.customer }}, your order {{ doc.name }} is confirmed.",
+            "fieldname": "message_template",
+            "fieldtype": "Small Text",
+            "label": "Message Template",
+            "reqd": 1
+        }
+    ],
+    "index_web_pages_for_search": 1,
+    "links": [],
+    "modified": "2024-05-23 12:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Whatsapp",
+    "name": "Whatsapp Notification",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
+}

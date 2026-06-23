@@ -1,0 +1,169 @@
+{
+    "actions": [],
+    "creation": "2024-02-14 20:00:00.000000",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "instance",
+        "recipient_number",
+        "message_type",
+        "column_break_main",
+        "contact_name",
+        "status",
+        "content_section",
+        "message",
+        "media_section",
+        "media_url",
+        "media_type",
+        "caption",
+        "location_section",
+        "latitude",
+        "longitude",
+        "location_name",
+        "location_address",
+        "chat_section",
+        "chat_html"
+    ],
+    "fields": [
+        {
+            "fieldname": "instance",
+            "fieldtype": "Link",
+            "label": "WhatsApp Instance",
+            "options": "Whatsapp Instance",
+            "reqd": 1,
+            "in_list_view": 1
+        },
+        {
+            "fieldname": "recipient_number",
+            "fieldtype": "Data",
+            "label": "Recipient Number",
+            "reqd": 1,
+            "in_list_view": 1,
+            "description": "With country code (e.g., 8801XXXXXXXXX)"
+        },
+        {
+            "fieldname": "message_type",
+            "fieldtype": "Select",
+            "label": "Message Type",
+            "options": "Text\nMedia\nLocation\nContact\nAudio",
+            "default": "Text",
+            "reqd": 1,
+            "in_list_view": 1
+        },
+        {
+            "fieldname": "column_break_main",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "contact_name",
+            "fieldtype": "Data",
+            "label": "Contact / Chat Name",
+            "description": "Optional label for this chat"
+        },
+        {
+            "fieldname": "status",
+            "fieldtype": "Select",
+            "label": "Status",
+            "options": "Draft\nSent\nDelivered\nRead\nFailed",
+            "default": "Draft",
+            "read_only": 1,
+            "in_list_view": 1
+        },
+        {
+            "fieldname": "content_section",
+            "fieldtype": "Section Break",
+            "label": "Message Content"
+        },
+        {
+            "fieldname": "message",
+            "fieldtype": "Small Text",
+            "label": "Message",
+            "mandatory_depends_on": "eval:doc.message_type=='Text'"
+        },
+        {
+            "fieldname": "media_section",
+            "fieldtype": "Section Break",
+            "label": "Media Details",
+            "depends_on": "eval:doc.message_type=='Media' || doc.message_type=='Audio'"
+        },
+        {
+            "fieldname": "media_url",
+            "fieldtype": "Data",
+            "label": "Media URL",
+            "description": "Public URL of the media file"
+        },
+        {
+            "fieldname": "media_type",
+            "fieldtype": "Select",
+            "label": "Media Type",
+            "options": "\nimage\nvideo\ndocument\naudio",
+            "depends_on": "eval:doc.message_type=='Media'"
+        },
+        {
+            "fieldname": "caption",
+            "fieldtype": "Data",
+            "label": "Caption",
+            "depends_on": "eval:doc.message_type=='Media'"
+        },
+        {
+            "fieldname": "location_section",
+            "fieldtype": "Section Break",
+            "label": "Location Details",
+            "depends_on": "eval:doc.message_type=='Location'"
+        },
+        {
+            "fieldname": "latitude",
+            "fieldtype": "Float",
+            "label": "Latitude"
+        },
+        {
+            "fieldname": "longitude",
+            "fieldtype": "Float",
+            "label": "Longitude"
+        },
+        {
+            "fieldname": "location_name",
+            "fieldtype": "Data",
+            "label": "Place Name"
+        },
+        {
+            "fieldname": "location_address",
+            "fieldtype": "Data",
+            "label": "Address"
+        },
+        {
+            "fieldname": "chat_section",
+            "fieldtype": "Section Break",
+            "label": "Chat History"
+        },
+        {
+            "fieldname": "chat_html",
+            "fieldtype": "HTML",
+            "label": "Chat"
+        }
+    ],
+    "index_web_pages_for_search": 0,
+    "links": [],
+    "modified": "2024-02-14 20:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Whatsapp",
+    "name": "Whatsapp Chat",
+    "naming_rule": "Expression",
+    "autoname": "WA-CHAT-.#####",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "print": 1,
+            "read": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
+}
