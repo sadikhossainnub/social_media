@@ -1,0 +1,9 @@
+{
+  "extraPaths": [
+    "/home/sayed/frappe-bench2/apps/frappe",
+    "/home/sayed/frappe-bench2/apps/social_media"
+  ],
+  "pythonVersion": "3.10",
+  "typeCheckingMode": "basic",
+  "reportMissingModuleSource": "none"
+}

@@ -29,8 +29,8 @@ class FacebookPost(Document):
             # Send direct message to commenter
             response = send_text(
                 page_id=self.page,
-                recipient_psid=comment.commenter_psid,
-                text=message
+                recipient_id=comment.commenter_psid,
+                message=message
             )
             
             # Log the message
