@@ -164,6 +164,10 @@ def callback():
 		selected_page = pages[0]
 		frappe.log_error(f"Selected page: {selected_page.get('name')} (ID: {selected_page.get('id')})", "Facebook OAuth")
 		
+		# Auto-create/update all fetched pages
+		for p in pages:
+			create_or_update_facebook_page(p.get("id"), p.get("name"), p.get("access_token"))
+
 		# Save tokens and page info
 		frappe.log_error("Saving tokens to Facebook Settings...", "Facebook OAuth")
 		save_tokens(tokens, selected_page)
@@ -339,9 +343,39 @@ def save_tokens(tokens, page_info=None):
 		settings.page_access_token = page_info.get("access_token")
 		settings.page_id = page_info.get("id")
 		settings.page_name = page_info.get("name")
+		create_or_update_facebook_page(
+			page_info.get("id"),
+			page_info.get("name"),
+			page_info.get("access_token")
+		)
 	
 	settings.is_connected = 1
 	settings.save(ignore_permissions=True)
+
+
+def create_or_update_facebook_page(page_id, page_name, access_token):
+	"""Auto-create or update Facebook Page document to sync it with Facebook settings/explorer."""
+	if not page_id:
+		return
+	
+	try:
+		if frappe.db.exists("Facebook Page", page_id):
+			page_doc = frappe.get_doc("Facebook Page", page_id)
+			page_doc.page_name = page_name
+			page_doc.access_token = access_token
+			page_doc.status = "Active"
+			page_doc.save(ignore_permissions=True)
+			frappe.log_error(f"Updated Facebook Page document: {page_id}", "Facebook OAuth")
+		else:
+			page_doc = frappe.new_doc("Facebook Page")
+			page_doc.page_id = page_id
+			page_doc.page_name = page_name
+			page_doc.access_token = access_token
+			page_doc.status = "Active"
+			page_doc.insert(ignore_permissions=True)
+			frappe.log_error(f"Created new Facebook Page document: {page_id}", "Facebook OAuth")
+	except Exception as e:
+		frappe.log_error(f"Error in create_or_update_facebook_page: {str(e)}\n{frappe.get_traceback()}", "Facebook OAuth")
 
 
 @frappe.whitelist()

@@ -13,13 +13,34 @@ def get_context(context):
 	is_admin = "System Manager" in frappe.get_roles() or frappe.session.user == "Administrator"
 
 	pages = []
+	permissions = {}
+
 	if is_admin:
 		pages = frappe.get_all("Facebook Page", fields=["name", "page_name", "profile_picture_url"])
+		for p in pages:
+			permissions[p.name] = {
+				"can_post": 1,
+				"can_comment": 1,
+				"can_message": 1,
+				"can_ads": 1,
+				"can_insights": 1,
+				"can_settings": 1
+			}
 	else:
 		try:
 			settings = frappe.get_single("Facebook Settings")
 			roles = settings.get("team_roles") or []
-			allowed_names = [r.page for r in roles if r.user == frappe.session.user]
+			for r in roles:
+				if r.user == frappe.session.user:
+					permissions[r.page] = {
+						"can_post": r.can_post,
+						"can_comment": r.can_comment,
+						"can_message": r.can_message,
+						"can_ads": r.can_ads,
+						"can_insights": r.can_insights,
+						"can_settings": r.can_settings
+					}
+			allowed_names = list(permissions.keys())
 			if allowed_names:
 				pages = frappe.get_all(
 					"Facebook Page",
@@ -33,7 +54,9 @@ def get_context(context):
 		"userFullName": frappe.utils.get_fullname(frappe.session.user),
 		"userEmail": frappe.session.user,
 		"csrfToken": frappe.local.session.data.csrf_token,
-		"pages": [dict(p) for p in pages]
+		"pages": [dict(p) for p in pages],
+		"permissions": permissions,
+		"isAdmin": is_admin
 	}
 
 	# Read the static HTML file (no Jinja syntax inside)

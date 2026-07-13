@@ -119,7 +119,7 @@ window.fbPortalData = {
 
 		<!-- Navigation -->
 		<nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-			<button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id" 
+			<button v-for="tab in allowedTabs" :key="tab.id" @click="currentTab = tab.id" 
 				:class="['w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200', currentTab === tab.id ? 'active-tab text-brand-400 shadow-inner' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30']">
 				<i :data-lucide="tab.icon" class="w-5 h-5"></i>
 				<span>{{ tab.name }}</span>
@@ -164,7 +164,7 @@ window.fbPortalData = {
 					</button>
 				</div>
 				<!-- Settings Shortcut -->
-				<button @click="currentTab = 'settings'" class="p-2 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800/50 transition-all">
+				<button v-if="currentPermissions.can_settings" @click="currentTab = 'settings'" class="p-2 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800/50 transition-all">
 					<i data-lucide="settings" class="w-5 h-5"></i>
 				</button>
 			</div>
@@ -629,7 +629,7 @@ window.fbPortalData = {
 {% endraw %}
 
 <script>
-	const { createApp, ref, onMounted, computed, nextTick } = Vue;
+	const { createApp, ref, onMounted, computed, nextTick, watch } = Vue;
 
 	createApp({
 		setup() {
@@ -651,6 +651,23 @@ window.fbPortalData = {
 				return pages.value.find(p => p.name === selectedPageId.value);
 			});
 
+			const permissions = ref(_data.permissions || {});
+			const isAdmin = ref(_data.isAdmin || false);
+
+			const currentPermissions = computed(() => {
+				if (isAdmin.value) {
+					return {
+						can_post: 1,
+						can_comment: 1,
+						can_message: 1,
+						can_ads: 1,
+						can_insights: 1,
+						can_settings: 1
+					};
+				}
+				return permissions.value[selectedPageId.value] || {};
+			});
+
 			const loading = ref(false);
 			const currentTab = ref('dashboard');
 			const tabs = [
@@ -663,8 +680,28 @@ window.fbPortalData = {
 				{ id: 'settings', name: 'Settings', icon: 'sliders' }
 			];
 
+			const allowedTabs = computed(() => {
+				const perms = currentPermissions.value;
+				return tabs.filter(tab => {
+					if (tab.id === 'dashboard') return true;
+					if (tab.id === 'calendar') return !!perms.can_post;
+					if (tab.id === 'inbox') return !!perms.can_message;
+					if (tab.id === 'ai') return !!perms.can_comment;
+					if (tab.id === 'campaigns') return !!perms.can_ads;
+					if (tab.id === 'media') return !!perms.can_post;
+					if (tab.id === 'settings') return !!perms.can_settings;
+					return false;
+				});
+			});
+
 			const currentTabName = computed(() => {
 				return tabs.find(t => t.id === currentTab.value)?.name || 'Dashboard';
+			});
+
+			watch(allowedTabs, (newTabs) => {
+				if (!newTabs.some(t => t.id === currentTab.value)) {
+					currentTab.value = 'dashboard';
+				}
 			});
 
 			// Page Stats
@@ -1001,6 +1038,7 @@ window.fbPortalData = {
 			return {
 				userFullName, userEmail, userInitials,
 				pages, selectedPageId, selectedPage,
+				currentPermissions, allowedTabs,
 				loading, currentTab, currentTabName, tabs,
 				pageStats, recentActions,
 				currentMonthName, calendarDays, showNewPostModal, newPost,

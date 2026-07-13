@@ -196,6 +196,10 @@ def set_manual_token(page_access_token, page_id=None, page_name=None):
 	settings.token_expiry      = None                 # unknown expiry for manual tokens
 	settings.save(ignore_permissions=True)
 
+	# Auto-create or update Facebook Page document
+	from social_media.facebook.auth import create_or_update_facebook_page
+	create_or_update_facebook_page(page_id, page_name, page_access_token)
+
 	frappe.db.commit()
 
 	return {

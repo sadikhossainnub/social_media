@@ -621,6 +621,9 @@ def get_page_insights_data(page_id, date_from=None, date_to=None):
 @frappe.whitelist()
 def get_ad_campaigns(page_id=None, page=1, limit=50):
 	"""Get campaign data for connected Ad Accounts."""
+	if page_id and not check_portal_permission(page_id, "can_ads"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
 	filters = {}
 	if page_id:
 		filters["page"] = page_id

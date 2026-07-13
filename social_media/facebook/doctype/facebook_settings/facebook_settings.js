@@ -77,6 +77,9 @@ frappe.ui.form.on('Facebook Settings', {
         
         // Add custom buttons
         add_custom_buttons(frm);
+
+        // Bind events to the HTML buttons in the form
+        bind_html_buttons(frm);
     },
 
     app_id: function(frm) {
@@ -126,6 +129,7 @@ function update_connection_ui(frm) {
         
         // Show disconnect button
         $(frm.fields_dict.disconnect_button.$wrapper).show();
+        $(frm.fields_dict.disconnect_button.$wrapper).find('#disconnect-facebook').show();
         $(frm.fields_dict.connect_button.$wrapper).hide();
     } else {
         status_html.html(`
@@ -143,7 +147,75 @@ function update_connection_ui(frm) {
         // Hide disconnect button
         $(frm.fields_dict.disconnect_button.$wrapper).hide();
         $(frm.fields_dict.connect_button.$wrapper).show();
+        $(frm.fields_dict.connect_button.$wrapper).find('#connect-facebook').show();
     }
+}
+
+function bind_html_buttons(frm) {
+    // Connect button click
+    $(frm.wrapper).find('#connect-facebook').off('click').on('click', function(e) {
+        e.preventDefault();
+        frappe.call({
+            method: 'social_media.facebook.auth.get_oauth_url',
+            callback: function(r) {
+                if (r.message) {
+                    const popup = window.open(r.message, '_blank', 'width=600,height=700');
+                    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+                        frappe.msgprint({
+                            title: __('Popup Blocked'),
+                            indicator: 'red',
+                            message: __('Please allow popups for this site to complete the OAuth flow.')
+                        });
+                    }
+                }
+            }
+        });
+    });
+
+    // Disconnect button click
+    $(frm.wrapper).find('#disconnect-facebook').off('click').on('click', function(e) {
+        e.preventDefault();
+        frappe.confirm('Are you sure you want to disconnect from Facebook?', function() {
+            frappe.call({
+                method: 'social_media.facebook.auth.disconnect',
+                callback: function(r) {
+                    if (r.message) {
+                        frappe.msgprint({
+                            title: __('Disconnected'),
+                            indicator: 'green',
+                            message: r.message.message
+                        });
+                        frm.reload_doc();
+                    }
+                }
+            });
+        });
+    });
+
+    // Refresh Token button click
+    $(frm.wrapper).find('#refresh-token').off('click').on('click', function(e) {
+        e.preventDefault();
+        frappe.call({
+            method: 'social_media.facebook.doctype.facebook_settings.facebook_settings.refresh_token',
+            callback: function(r) {
+                if (r.message) {
+                    if (r.message.success) {
+                        frappe.msgprint({
+                            title: __('Success'),
+                            indicator: 'green',
+                            message: r.message.message
+                        });
+                    } else {
+                        frappe.msgprint({
+                            title: __('Error'),
+                            indicator: 'red',
+                            message: r.message.message
+                        });
+                    }
+                }
+            }
+        });
+    });
 }
 
 function add_custom_buttons(frm) {

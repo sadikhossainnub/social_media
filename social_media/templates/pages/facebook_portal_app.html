@@ -38,7 +38,7 @@
     </div>
 
     <nav class="flex-1 px-2 py-3 space-y-1 overflow-y-auto">
-      <button v-for="tab in tabs" :key="tab.id" @click="currentTab=tab.id"
+      <button v-for="tab in allowedTabs" :key="tab.id" @click="currentTab=tab.id"
         :class="['w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold rounded-xl transition-all', currentTab===tab.id ? 'nav-active' : 'text-slate-400 hover:text-white hover:bg-slate-800/40']">
         <i :data-lucide="tab.icon" class="w-4 h-4 shrink-0"></i>
         <span>{{ tab.name }}</span>
@@ -65,7 +65,7 @@
       </div>
       <div class="flex items-center gap-2">
         <span v-if="loading" class="text-xs text-slate-400 animate-pulse">Loading…</span>
-        <button @click="currentTab='settings'" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50 transition"><i data-lucide="settings" class="w-4 h-4"></i></button>
+        <button v-if="currentPermissions.can_settings" @click="currentTab='settings'" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50 transition"><i data-lucide="settings" class="w-4 h-4"></i></button>
       </div>
     </header>
 
@@ -196,7 +196,7 @@
 </div>
 
 <script>
-const { createApp, ref, computed, onMounted, nextTick } = Vue;
+const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
 createApp({
   setup() {
     const D = window.fbPortalData || {};
@@ -208,6 +208,23 @@ createApp({
     const selectedPage = computed(() => pages.value.find(p => p.name === selectedPageId.value));
     const userInitials = computed(() => userFullName.value.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2));
 
+    const permissions = ref(D.permissions || {});
+    const isAdmin = ref(D.isAdmin || false);
+
+    const currentPermissions = computed(() => {
+      if (isAdmin.value) {
+        return {
+          can_post: 1,
+          can_comment: 1,
+          can_message: 1,
+          can_ads: 1,
+          can_insights: 1,
+          can_settings: 1
+        };
+      }
+      return permissions.value[selectedPageId.value] || {};
+    });
+
     const loading = ref(false);
     const currentTab = ref('dashboard');
     const tabs = [
@@ -217,7 +234,26 @@ createApp({
       { id: 'campaigns', name: 'Ad Campaigns', icon: 'megaphone' },
       { id: 'settings', name: 'Settings', icon: 'sliders' }
     ];
+
+    const allowedTabs = computed(() => {
+      const perms = currentPermissions.value;
+      return tabs.filter(tab => {
+        if (tab.id === 'dashboard') return true;
+        if (tab.id === 'inbox') return !!perms.can_message;
+        if (tab.id === 'ai') return !!perms.can_comment;
+        if (tab.id === 'campaigns') return !!perms.can_ads;
+        if (tab.id === 'settings') return !!perms.can_settings;
+        return false;
+      });
+    });
+
     const currentTabName = computed(() => tabs.find(t => t.id === currentTab.value)?.name || '');
+
+    watch(allowedTabs, (newTabs) => {
+      if (!newTabs.some(t => t.id === currentTab.value)) {
+        currentTab.value = 'dashboard';
+      }
+    });
 
     const statCards = ref([
       { label: 'Page Likes', value: '—', icon: 'users', bg: 'bg-blue-500/10', color: 'text-blue-400' },
@@ -330,6 +366,7 @@ createApp({
     return {
       userFullName, userEmail, userInitials, pages, selectedPageId, selectedPage,
       loading, currentTab, currentTabName, tabs, statCards,
+      currentPermissions, allowedTabs,
       inboxChats, selectedChat, chatMessages, replyText, chatBox,
       aiReplies, campaigns, settings,
       loadAll, selectChat, sendMsg, approveReply, saveSettings, logout, fmtTime, sentimentClass

@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"header_main\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Facebook Automation Dashboard</span>\",\"col\":12}},{\"id\":\"W_xhyMVywo\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Facebook\",\"col\":3}},{\"id\":\"Jz1dUW8dYk\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"EfnDnzlEIx\",\"type\":\"card\",\"data\":{\"card_name\":\"Facebook Page\",\"col\":4}}]",
+ "content": "[{\"id\":\"header_main\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Facebook Automation Dashboard</span>\",\"col\":12}},{\"id\":\"W_xhyMVywo\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Facebook\",\"col\":3}},{\"id\":\"M1Z1B0jV45\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Facebook Settings\",\"col\":3}},{\"id\":\"Jz1dUW8dYk\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"EfnDnzlEIx\",\"type\":\"card\",\"data\":{\"card_name\":\"Facebook Page\",\"col\":4}}]",
  "creation": "2026-05-28 00:00:00.000555",
  "custom_blocks": [],
  "docstatus": 0,
@@ -32,7 +32,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-07-12 11:38:49.207237",
+ "modified": "2026-07-13 07:35:42.627279",
  "modified_by": "Administrator",
  "module": "Facebook",
  "name": "Facebook",
@@ -44,6 +44,13 @@
  "roles": [],
  "sequence_id": 42.0,
  "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Facebook Settings",
+   "link_to": "Facebook Settings",
+   "type": "DocType"
+  },
   {
    "color": "Grey",
    "doc_view": "List",
