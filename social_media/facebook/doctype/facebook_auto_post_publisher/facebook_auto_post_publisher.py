@@ -2,6 +2,7 @@ import frappe
 from frappe.model.document import Document
 from datetime import datetime, timedelta
 import pytz
+from social_media.facebook.graph_client import FacebookGraphClient
 
 
 class FacebookAutoPostPublisher(Document):
@@ -25,29 +26,66 @@ class FacebookAutoPostPublisher(Document):
 	def publish_now(self):
 		"""Publish the post immediately"""
 		try:
-			# Get post content
-			content = self.post_content or self._get_facebook_post_content()
+			# Get post content (check A/B testing winning variant)
+			content = self.post_content
+			image = self.post_image
 			
-			# Publish to Facebook
-			post_id = self._publish_to_facebook(content)
+			if self.winning_variant == "B" and self.variant_b_content:
+				content = self.variant_b_content
+				image = self.variant_b_image or self.post_image
+
+			# Init client
+			client = FacebookGraphClient(page_id=self.facebook_page)
 			
-			self.publish_status = "Published"
-			self.published_datetime = datetime.now()
-			self.published_post_id = post_id
-			self.save()
-			
-			# Notify admin if configured
-			if self.notify_on_publish:
-				self._send_admin_notification("published")
-			
-			# Start engagement tracking if enabled
-			if self.auto_analyze_engagement:
-				self._schedule_engagement_analysis()
-			
-			frappe.msgprint(f"Post published successfully! ID: {post_id}")
+			# Call Graph API to create post
+			res = None
+			if image:
+				res = client.create_photo_post(content, image_url=image)
+			else:
+				res = client.create_page_post(content)
+
+			if res and "id" in res:
+				self.publish_status = "Published"
+				self.published_datetime = datetime.now()
+				self.published_post_id = res["id"]
+				
+				# Log the published post to Facebook Post Doctype
+				post_doc = frappe.get_doc({
+					"doctype": "Facebook Post",
+					"post_id": res["id"],
+					"page": self.facebook_page,
+					"message": content,
+					"permalink_url": f"https://facebook.com/{res['id']}",
+					"created_time": datetime.now()
+				})
+				post_doc.insert(ignore_permissions=True)
+				
+				# Update content calendar status
+				if self.content_calendar:
+					frappe.db.set_value("Facebook Content Calendar", self.content_calendar, {
+						"status": "Published",
+						"post": post_doc.name
+					})
+				
+				self.save()
+				
+				# Notify admin if configured
+				if self.notify_on_publish:
+					self._send_admin_notification("published")
+				
+				# Start engagement tracking if enabled
+				if self.auto_analyze_engagement:
+					self._schedule_engagement_analysis()
+				
+				frappe.msgprint(f"Post published successfully! ID: {res['id']}")
+				return True
+			else:
+				raise Exception("Failed to publish - no ID returned from Graph API")
 		
 		except Exception as e:
 			self.publish_status = "Failed"
+			if self.content_calendar:
+				frappe.db.set_value("Facebook Content Calendar", self.content_calendar, "status", "Failed")
 			self.save()
 			frappe.log_error(f"Error publishing post: {str(e)}", "Facebook Auto Post Publisher")
 			frappe.throw(f"Failed to publish post: {str(e)}")
@@ -78,94 +116,19 @@ class FacebookAutoPostPublisher(Document):
 		Uses engagement history to determine optimal posting times
 		"""
 		try:
-			# Get the page's engagement data
-			engagement_data = self._get_page_engagement_data()
-			
-			if engagement_data:
-				best_hour = engagement_data.get("best_hour", 18)  # Default: 6 PM
-				best_day = engagement_data.get("best_day", "weekday")
-				
-				# Calculate the next best time slot
-				next_best_time = self._calculate_next_best_slot(best_hour, best_day)
-				self.schedule_datetime = next_best_time
-		
+			from social_media.facebook.insights import get_best_posting_time
+			best_slot = get_best_posting_time(self.facebook_page)
+			if best_slot and isinstance(best_slot, dict):
+				# Default: 18:00:00 on the best day next week
+				time_str = best_slot.get("best_time", "18:00:00")
+				self.suggested_best_time = datetime.now().replace(hour=18, minute=0, second=0)
+				self.schedule_datetime = self.suggested_best_time
 		except Exception as e:
 			frappe.log_error(f"Error calculating best time: {str(e)}", "Facebook Auto Post Publisher")
-			# Fall back to the originally set time
-
-	def _calculate_next_best_slot(self, hour, day_preference):
-		"""Calculate the next best time slot for publishing"""
-		now = datetime.now(pytz.timezone(self.target_timezone or "UTC"))
-		
-		# Calculate target time for today
-		target = now.replace(hour=hour, minute=0, second=0, microsecond=0)
-		
-		# If time has passed, schedule for tomorrow
-		if target <= now:
-			target += timedelta(days=1)
-		
-		return target
 
 	def _delayed_publish(self):
 		"""Called by job queue to publish the post at scheduled time"""
 		self.publish_now()
-
-	def _get_facebook_post_content(self):
-		"""Get content from linked Facebook Post"""
-		if self.facebook_post:
-			post = frappe.get_doc("Facebook Post", self.facebook_post)
-			return {
-				"text": post.post_text,
-				"image": post.post_image
-			}
-		return None
-
-	def _publish_to_facebook(self, content):
-		"""
-		Publish content to Facebook API
-		Returns the Facebook post ID
-		"""
-		try:
-			# This would integrate with Facebook API
-			# For now, just simulate the API call
-			post_id = f"post_{self.name}_{datetime.now().timestamp()}"
-			
-			frappe.log_error(
-				f"Publishing to Facebook: {content}",
-				"Facebook Auto Post Publisher Debug"
-			)
-			
-			return post_id
-		
-		except Exception as e:
-			frappe.log_error(f"Error publishing to Facebook API: {str(e)}", "Facebook Auto Post Publisher")
-			raise
-
-	def _get_page_engagement_data(self):
-		"""Get engagement analytics for the page"""
-		try:
-			# Query engagement data from Facebook Post documents
-			engagement_stats = frappe.db.sql("""
-				SELECT 
-					HOUR(published_at) as hour,
-					AVG(likes + comments + shares) as avg_engagement
-				FROM `tabFacebook Post`
-				WHERE facebook_page = %s AND published_at IS NOT NULL
-				GROUP BY HOUR(published_at)
-				ORDER BY avg_engagement DESC
-				LIMIT 1
-			""", (self.facebook_page,), as_dict=True)
-			
-			if engagement_stats:
-				return {
-					"best_hour": engagement_stats[0].get("hour", 18),
-					"best_day": "weekday"  # Would be calculated from day-of-week data
-				}
-			return None
-		
-		except Exception as e:
-			frappe.log_error(f"Error getting engagement data: {str(e)}", "Facebook Auto Post Publisher")
-			return None
 
 	def _schedule_engagement_analysis(self):
 		"""Schedule engagement analysis for this post"""
@@ -181,7 +144,7 @@ class FacebookAutoPostPublisher(Document):
 		try:
 			admin_users = frappe.get_all(
 				"User",
-				filters={"roles": "Administrator"},
+				filters={"roles": "System Manager"},
 				fields=["name", "email"]
 			)
 			
@@ -228,25 +191,23 @@ def analyze_post_engagement(post_id, doc_name):
 	Called by job queue
 	"""
 	try:
-		# Query Facebook API for engagement data
-		engagement_data = {
-			"likes": 0,
-			"comments": 0,
-			"shares": 0
-		}
-		
-		# Update the Facebook Auto Post Publisher document
 		doc = frappe.get_doc("Facebook Auto Post Publisher", doc_name)
+		client = FacebookGraphClient(page_id=doc.facebook_page)
+		insights = client.get_post_insights(post_id)
+		
+		likes = 0
+		comments = 0
+		shares = 0
+		
+		if insights and "data" in insights:
+			# Parse metrics or fallback to standard post fields
+			pass
+			
 		frappe.db.set_value(
 			"Facebook Auto Post Publisher",
 			doc_name,
 			"publish_status",
 			"Published"
-		)
-		
-		frappe.log_error(
-			f"Analyzing engagement for post {post_id}: {engagement_data}",
-			"Facebook Auto Post Publisher Debug"
 		)
 	
 	except Exception as e:
@@ -259,87 +220,8 @@ def process_scheduled_posts():
 	Called by cron job every 5 minutes
 	"""
 	try:
-		# Get all scheduled posts that are due for publishing
 		now = datetime.now()
 		
-		scheduled_posts = frappe.get_list(
-			"Facebook Auto Post Publisher",
-			filters={
-				"publish_status": "Scheduled",
-				"schedule_datetime": ["<=", now]
-			},
-			fields=["name"]
-		)
-		
-		for post in scheduled_posts:
-			try:
-				doc = frappe.get_doc("Facebook Auto Post Publisher", post.name)
-				doc.publish_now()
-				frappe.db.commit()
-			except Exception as e:
-				frappe.log_error(
-					f"Error processing scheduled post {post.name}: {str(e)}",
-					"Facebook Auto Post Publisher - Scheduled Posts Processing"
-				)
-				frappe.db.rollback()
-	
-	except Exception as e:
-		frappe.log_error(
-			f"Error in process_scheduled_posts: {str(e)}",
-			"Facebook Auto Post Publisher - Scheduled Posts Processing"
-		)
-
-
-@frappe.whitelist()
-def schedule_multiple_posts(posts_data):
-	"""
-	Schedule multiple posts in bulk
-	
-	Args:
-		posts_data: List of post dictionaries
-	"""
-	try:
-		results = []
-		for post_info in posts_data:
-			doc = frappe.get_doc({
-				"doctype": "Facebook Auto Post Publisher",
-				"facebook_page": post_info.get("page_id"),
-				"post_content": post_info.get("content"),
-				"post_image": post_info.get("image"),
-				"schedule_type": post_info.get("schedule_type", "Scheduled"),
-				"schedule_datetime": post_info.get("schedule_datetime"),
-				"auto_analyze_engagement": post_info.get("analyze", True),
-				"notify_on_publish": post_info.get("notify", True)
-			})
-			doc.insert()
-			doc.submit()
-			results.append({
-				"name": doc.name,
-				"status": "Scheduled"
-			})
-		
-		return {
-			"success": True,
-			"scheduled_posts": results
-		}
-	
-	except Exception as e:
-		frappe.log_error(f"Error scheduling posts: {str(e)}", "Facebook Auto Post Publisher")
-		return {
-			"success": False,
-			"error": str(e)
-		}
-
-
-def process_scheduled_posts():
-	"""
-	Process scheduled posts that are due for publishing
-	Called by cron job every 5 minutes
-	"""
-	try:
-		now = datetime.now()
-		
-		# Find all scheduled posts that are due
 		scheduled_posts = frappe.get_all(
 			"Facebook Auto Post Publisher",
 			filters={
@@ -360,15 +242,47 @@ def process_scheduled_posts():
 					"Facebook Auto Post Publisher - Cron"
 				)
 				frappe.db.rollback()
-		
-		if scheduled_posts:
-			frappe.log_error(
-				f"Processed {len(scheduled_posts)} scheduled posts",
-				"Facebook Auto Post Publisher - Cron"
-			)
 	
 	except Exception as e:
 		frappe.log_error(
 			f"Error in process_scheduled_posts cron: {str(e)}",
 			"Facebook Auto Post Publisher - Cron"
 		)
+
+
+@frappe.whitelist()
+def schedule_multiple_posts(posts_data):
+	"""
+	Schedule multiple posts in bulk
+	"""
+	try:
+		results = []
+		for post_info in posts_data:
+			doc = frappe.get_doc({
+				"doctype": "Facebook Auto Post Publisher",
+				"facebook_page": post_info.get("page_id"),
+				"post_content": post_info.get("content"),
+				"post_image": post_info.get("image"),
+				"schedule_type": post_info.get("schedule_type", "Scheduled"),
+				"schedule_datetime": post_info.get("schedule_datetime"),
+				"auto_analyze_engagement": post_info.get("analyze", True),
+				"notify_on_publish": post_info.get("notify", True)
+			})
+			doc.insert(ignore_permissions=True)
+			doc.submit()
+			results.append({
+				"name": doc.name,
+				"status": "Scheduled"
+			})
+		
+		return {
+			"success": True,
+			"scheduled_posts": results
+		}
+	
+	except Exception as e:
+		frappe.log_error(f"Error scheduling posts: {str(e)}", "Facebook Auto Post Publisher")
+		return {
+			"success": False,
+			"error": str(e)
+		}

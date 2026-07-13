@@ -1,153 +1,208 @@
 {
-    "actions": [],
-    "allow_rename": 1,
-    "creation": "2026-05-28 00:00:00.000000",
-    "doctype": "DocType",
-    "engine": "InnoDB",
-    "field_order": [
-        "comment_info_section",
-        "comment_id",
-        "post",
-        "post_id",
-        "page",
-        "page_name",
-        "column_break_1",
-        "commenter_name",
-        "commenter_psid",
-        "message",
-        "created_time",
-        "reactions_section",
-        "like_count",
-        "reply_count",
-        "reactions",
-        "reply_section",
-        "reply_message",
-        "replied_time",
-        "replied_by"
-    ],
-    "fields": [
-        {
-            "fieldname": "comment_id",
-            "fieldtype": "Data",
-            "label": "Comment ID",
-            "reqd": 1,
-            "unique": 1,
-            "in_list_view": 1
-        },
-        {
-            "fieldname": "post",
-            "fieldtype": "Link",
-            "label": "Post",
-            "options": "Facebook Post",
-            "reqd": 1
-        },
-        {
-            "fieldname": "post_id",
-            "fieldtype": "Data",
-            "label": "Post ID",
-            "read_only": 1
-        },
-        {
-            "fieldname": "page",
-            "fieldtype": "Link",
-            "label": "Facebook Page",
-            "options": "Facebook Page",
-            "reqd": 1
-        },
-        {
-            "fieldname": "page_name",
-            "fieldtype": "Data",
-            "label": "Page Name",
-            "read_only": 1
-        },
-        {
-            "fieldname": "column_break_1",
-            "fieldtype": "Column Break"
-        },
-        {
-            "fieldname": "commenter_name",
-            "fieldtype": "Data",
-            "label": "Commenter Name"
-        },
-        {
-            "fieldname": "commenter_psid",
-            "fieldtype": "Data",
-            "label": "Commenter PSID"
-        },
-        {
-            "fieldname": "message",
-            "fieldtype": "Text Editor",
-            "label": "Comment Message"
-        },
-        {
-            "fieldname": "created_time",
-            "fieldtype": "Datetime",
-            "label": "Created Time"
-        },
-        {
-            "fieldname": "reactions_section",
-            "fieldtype": "Section Break",
-            "label": "Reactions"
-        },
-        {
-            "fieldname": "like_count",
-            "fieldtype": "Int",
-            "label": "Like Count"
-        },
-        {
-            "fieldname": "reply_count",
-            "fieldtype": "Int",
-            "label": "Reply Count"
-        },
-        {
-            "fieldname": "reactions",
-            "fieldtype": "Code",
-            "label": "Reactions",
-            "default": "{}"
-        },
-        {
-            "fieldname": "reply_section",
-            "fieldtype": "Section Break",
-            "label": "Reply"
-        },
-        {
-            "fieldname": "reply_message",
-            "fieldtype": "Text Editor",
-            "label": "Reply Message"
-        },
-        {
-            "fieldname": "replied_time",
-            "fieldtype": "Datetime",
-            "label": "Replied Time"
-        },
-        {
-            "fieldname": "replied_by",
-            "fieldtype": "Data",
-            "label": "Replied By"
-        }
-    ],
-    "index_web_pages_for_search": 1,
-    "links": [],
-    "modified": "2026-05-28 00:00:00.000000",
-    "modified_by": "Administrator",
-    "module": "Facebook",
-    "name": "Facebook Comment",
-    "naming_rule": "By fieldname",
-    "autoname": "field:comment_id",
-    "owner": "Administrator",
-    "permissions": [
-        {
-            "create": 1,
-            "delete": 1,
-            "email": 1,
-            "print": 1,
-            "read": 1,
-            "role": "System Manager",
-            "share": 1,
-            "write": 1
-        }
-    ],
-    "sort_field": "modified",
-    "sort_order": "DESC",
-    "states": []
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-28 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "comment_info_section",
+  "comment_id",
+  "post",
+  "post_id",
+  "page",
+  "page_name",
+  "column_break_1",
+  "commenter_name",
+  "commenter_psid",
+  "message",
+  "created_time",
+  "sentiment_section",
+  "sentiment",
+  "sentiment_score",
+  "is_hidden",
+  "is_spam",
+  "reactions_section",
+  "like_count",
+  "reply_count",
+  "reactions",
+  "lead_section",
+  "converted_to_lead",
+  "lead_reference",
+  "reply_section",
+  "reply_message",
+  "replied_time",
+  "replied_by"
+ ],
+ "fields": [
+  {
+   "fieldname": "comment_id",
+   "fieldtype": "Data",
+   "label": "Comment ID",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "post",
+   "fieldtype": "Link",
+   "label": "Post",
+   "options": "Facebook Post",
+   "reqd": 1
+  },
+  {
+   "fieldname": "post_id",
+   "fieldtype": "Data",
+   "label": "Post ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "page",
+   "fieldtype": "Link",
+   "label": "Facebook Page",
+   "options": "Facebook Page",
+   "reqd": 1
+  },
+  {
+   "fieldname": "page_name",
+   "fieldtype": "Data",
+   "label": "Page Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "commenter_name",
+   "fieldtype": "Data",
+   "label": "Commenter Name"
+  },
+  {
+   "fieldname": "commenter_psid",
+   "fieldtype": "Data",
+   "label": "Commenter PSID"
+  },
+  {
+   "fieldname": "message",
+   "fieldtype": "Text Editor",
+   "label": "Comment Message"
+  },
+  {
+   "fieldname": "created_time",
+   "fieldtype": "Datetime",
+   "label": "Created Time"
+  },
+  {
+   "fieldname": "sentiment_section",
+   "fieldtype": "Section Break",
+   "label": "Sentiment & Moderation"
+  },
+  {
+   "fieldname": "sentiment",
+   "fieldtype": "Select",
+   "label": "Sentiment",
+   "options": "Positive\nNeutral\nNegative\nSpam",
+   "default": "Neutral"
+  },
+  {
+   "fieldname": "sentiment_score",
+   "fieldtype": "Float",
+   "label": "Sentiment Score",
+   "default": "0.0"
+  },
+  {
+   "fieldname": "is_hidden",
+   "fieldtype": "Check",
+   "label": "Is Hidden",
+   "default": 0
+  },
+  {
+   "fieldname": "is_spam",
+   "fieldtype": "Check",
+   "label": "Is Spam",
+   "default": 0
+  },
+  {
+   "fieldname": "reactions_section",
+   "fieldtype": "Section Break",
+   "label": "Reactions"
+  },
+  {
+   "fieldname": "like_count",
+   "fieldtype": "Int",
+   "label": "Like Count"
+  },
+  {
+   "fieldname": "reply_count",
+   "fieldtype": "Int",
+   "label": "Reply Count"
+  },
+  {
+   "fieldname": "reactions",
+   "fieldtype": "Code",
+   "label": "Reactions",
+   "default": "{}"
+  },
+  {
+   "fieldname": "lead_section",
+   "fieldtype": "Section Break",
+   "label": "Lead Integration"
+  },
+  {
+   "fieldname": "converted_to_lead",
+   "fieldtype": "Check",
+   "label": "Converted to Lead",
+   "default": 0
+  },
+  {
+   "fieldname": "lead_reference",
+   "fieldtype": "Link",
+   "label": "Lead Reference",
+   "options": "Lead"
+  },
+  {
+   "fieldname": "reply_section",
+   "fieldtype": "Section Break",
+   "label": "Reply"
+  },
+  {
+   "fieldname": "reply_message",
+   "fieldtype": "Text Editor",
+   "label": "Reply Message"
+  },
+  {
+   "fieldname": "replied_time",
+   "fieldtype": "Datetime",
+   "label": "Replied Time"
+  },
+  {
+   "fieldname": "replied_by",
+   "fieldtype": "Data",
+   "label": "Replied By"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-12 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Facebook",
+ "name": "Facebook Comment",
+ "naming_rule": "By fieldname",
+ "autoname": "field:comment_id",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
 }

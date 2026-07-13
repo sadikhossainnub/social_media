@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-900 text-slate-100">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Facebook Management Portal</title>
+	<!-- Google Fonts -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+	<!-- Tailwind CSS CDN -->
+	<script src="https://cdn.tailwindcss.com"></script>
+	<script>
+		tailwind.config = {
+			theme: {
+				extend: {
+					fontFamily: {
+						sans: ['Plus Jakarta Sans', 'Outfit', 'sans-serif'],
+						display: ['Outfit', 'sans-serif'],
+					},
+					colors: {
+						brand: {
+							50: '#eef2ff',
+							100: '#e0e7ff',
+							200: '#c7d2fe',
+							300: '#a5b4fc',
+							400: '#818cf8',
+							500: '#6366f1',
+							600: '#4f46e5',
+							700: '#4338ca',
+							800: '#3730a3',
+							900: '#312e81',
+							950: '#1e1b4b',
+						}
+					}
+				}
+			}
+		}
+	</script>
+	<!-- Lucide Icons -->
+	<script src="https://unpkg.com/lucide@latest"></script>
+	<!-- Chart.js -->
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<!-- Vue 3 -->
+	<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+	<style>
+		[v-cloak] { display: none !important; }
+		body {
+			font-family: 'Plus Jakarta Sans', sans-serif;
+			background: radial-gradient(circle at top left, #1e1b4b 0%, #0f172a 100%);
+		}
+		::-webkit-scrollbar {
+			width: 6px;
+			height: 6px;
+		}
+		::-webkit-scrollbar-track {
+			background: rgba(15, 23, 42, 0.5);
+		}
+		::-webkit-scrollbar-thumb {
+			background: rgba(99, 102, 241, 0.3);
+			border-radius: 4px;
+		}
+		::-webkit-scrollbar-thumb:hover {
+			background: rgba(99, 102, 241, 0.6);
+		}
+		.glass-panel {
+			background: rgba(30, 41, 59, 0.45);
+			backdrop-filter: blur(16px);
+			border: 1px solid rgba(255, 255, 255, 0.07);
+		}
+		.active-tab {
+			background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0.05) 100%);
+			border-left: 4px solid #6366f1;
+			color: #a5b4fc;
+		}
+	</style>
+</head>
+<body class="h-full overflow-hidden">
+
+<!-- Inject server-side Jinja data BEFORE {% raw %} block -->
+<script>
+window.fbPortalData = {
+  userFullName: {{ user_fullname | tojson }},
+  userEmail: {{ user_email | tojson }},
+  csrfToken: {{ csrf_token | tojson }},
+  pages: {{ allowed_pages | tojson }}
+};
+</script>
+
+{% raw %}
+<div id="app" v-cloak class="h-full flex flex-col md:flex-row">
+	<!-- Sidebar -->
+	<aside class="w-full md:w-64 glass-panel flex flex-col border-r border-slate-800/80 shrink-0">
+		<div class="p-6 flex items-center gap-3 border-b border-slate-800/60">
+			<div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/25">
+				<i data-lucide="facebook" class="w-6 h-6 text-white"></i>
+			</div>
+			<div>
+				<h1 class="font-display font-extrabold text-lg bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">FB Portal</h1>
+				<p class="text-xs text-slate-400/80 font-medium">Enterprise Suite</p>
+			</div>
+		</div>
+
+		<!-- Page Selector -->
+		<div class="px-4 py-4 border-b border-slate-800/40">
+			<label class="text-[10px] font-bold tracking-wider text-slate-500 uppercase block mb-2">Active Facebook Page</label>
+			<div class="relative">
+				<select v-model="selectedPageId" @change="onPageChange" class="w-full bg-slate-800/80 text-sm rounded-lg px-3 py-2.5 border border-slate-700/80 text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/50 appearance-none cursor-pointer">
+					<option value="" disabled>Select a Page</option>
+					<option v-for="page in pages" :key="page.name" :value="page.name">
+						{{ page.page_name }}
+					</option>
+				</select>
+				<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+					<i data-lucide="chevrons-up-down" class="w-4 h-4"></i>
+				</div>
+			</div>
+		</div>
+
+		<!-- Navigation -->
+		<nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+			<button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id" 
+				:class="['w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200', currentTab === tab.id ? 'active-tab text-brand-400 shadow-inner' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30']">
+				<i :data-lucide="tab.icon" class="w-5 h-5"></i>
+				<span>{{ tab.name }}</span>
+				<span v-if="tab.badge && tab.badge() > 0" class="ml-auto bg-brand-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-md shadow-brand-500/20">
+					{{ tab.badge() }}
+				</span>
+			</button>
+		</nav>
+
+		<!-- User Profile & Logged in info -->
+		<div class="p-4 border-t border-slate-800/60 flex items-center gap-3 bg-slate-950/20">
+			<div class="w-9 h-9 rounded-full bg-slate-700/80 flex items-center justify-center font-bold text-slate-200 border border-slate-600/40">
+				{{ userInitials }}
+			</div>
+			<div class="flex-1 min-w-0">
+				<p class="text-xs font-semibold text-slate-200 truncate">{{ userFullName }}</p>
+				<p class="text-[10px] text-slate-500 truncate">{{ userEmail }}</p>
+			</div>
+			<button @click="logout" class="text-slate-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-800/40 transition-colors">
+				<i data-lucide="log-out" class="w-4 h-4"></i>
+			</button>
+		</div>
+	</aside>
+
+	<!-- Main Content Area -->
+	<main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+		<!-- Top Bar / Page Header -->
+		<header class="h-16 glass-panel border-b border-slate-800/60 flex items-center justify-between px-6 z-10 shrink-0">
+			<div class="flex items-center gap-4">
+				<h2 class="font-display font-bold text-lg text-slate-100">{{ currentTabName }}</h2>
+				<span v-if="selectedPage" class="bg-brand-500/10 text-brand-300 text-xs px-2.5 py-1 rounded-full border border-brand-500/20 font-medium">
+					{{ selectedPage.page_name }}
+				</span>
+			</div>
+			
+			<div class="flex items-center gap-3">
+				<!-- Notification Bell -->
+				<div class="relative">
+					<button class="p-2 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800/50 transition-all">
+						<i data-lucide="bell" class="w-5 h-5"></i>
+						<span v-if="alerts.length > 0" class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-slate-900"></span>
+					</button>
+				</div>
+				<!-- Settings Shortcut -->
+				<button @click="currentTab = 'settings'" class="p-2 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800/50 transition-all">
+					<i data-lucide="settings" class="w-5 h-5"></i>
+				</button>
+			</div>
+		</header>
+
+		<!-- Content Pages (Tab View) -->
+		<div class="flex-1 overflow-y-auto p-6 space-y-6">
+			<!-- Loading Overlay -->
+			<div v-if="loading" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50">
+				<div class="flex flex-col items-center gap-3">
+					<div class="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+					<p class="text-sm font-semibold text-slate-400">Loading data...</p>
+				</div>
+			</div>
+
+			<!-- Tab: Dashboard -->
+			<div v-if="currentTab === 'dashboard'" class="space-y-6">
+				<!-- Stats Grid -->
+				<div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+					<div class="glass-panel p-5 rounded-2xl flex items-center gap-4">
+						<div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/10">
+							<i data-lucide="users" class="w-6 h-6"></i>
+						</div>
+						<div>
+							<p class="text-xs font-semibold text-slate-500">Page Likes</p>
+							<h3 class="text-2xl font-display font-extrabold mt-0.5 text-slate-100">{{ pageStats.likes || 0 }}</h3>
+						</div>
+					</div>
+					<div class="glass-panel p-5 rounded-2xl flex items-center gap-4">
+						<div class="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/10">
+							<i data-lucide="trending-up" class="w-6 h-6"></i>
+						</div>
+						<div>
+							<p class="text-xs font-semibold text-slate-500">Followers</p>
+							<h3 class="text-2xl font-display font-extrabold mt-0.5 text-slate-100">{{ pageStats.followers || 0 }}</h3>
+						</div>
+					</div>
+					<div class="glass-panel p-5 rounded-2xl flex items-center gap-4">
+						<div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/10">
+							<i data-lucide="message-square" class="w-6 h-6"></i>
+						</div>
+						<div>
+							<p class="text-xs font-semibold text-slate-500">Engagement</p>
+							<h3 class="text-2xl font-display font-extrabold mt-0.5 text-slate-100">{{ pageStats.engagementRate || '0%' }}</h3>
+						</div>
+					</div>
+					<div class="glass-panel p-5 rounded-2xl flex items-center gap-4">
+						<div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 border border-amber-500/10">
+							<i data-lucide="eye" class="w-6 h-6"></i>
+						</div>
+						<div>
+							<p class="text-xs font-semibold text-slate-500">Page Views (30d)</p>
+							<h3 class="text-2xl font-display font-extrabold mt-0.5 text-slate-100">{{ pageStats.views || 0 }}</h3>
+						</div>
+					</div>
+				</div>
+
+				<!-- Charts / Analytics Row -->
+				<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+					<div class="lg:col-span-2 glass-panel p-5 rounded-2xl">
+						<div class="flex items-center justify-between mb-4">
+							<h3 class="font-display font-bold text-base text-slate-200">Page Performance</h3>
+							<select class="bg-slate-800 text-xs px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">
+								<option>Last 30 Days</option>
+								<option>Last 7 Days</option>
+							</select>
+						</div>
+						<div class="h-64 relative">
+							<canvas id="performanceChart"></canvas>
+						</div>
+					</div>
+					
+					<div class="glass-panel p-5 rounded-2xl flex flex-col">
+						<h3 class="font-display font-bold text-base text-slate-200 mb-4">Recent Actions</h3>
+						<div class="flex-1 space-y-4">
+							<div v-for="action in recentActions" :key="action.id" class="flex gap-3 text-sm">
+								<div class="w-2 h-2 rounded-full mt-1.5 shrink-0" :class="action.color"></div>
+								<div>
+									<p class="text-slate-300 font-semibold">{{ action.title }}</p>
+									<p class="text-xs text-slate-500 mt-0.5">{{ action.time }}</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Tab: Content Calendar -->
+			<div v-if="currentTab === 'calendar'" class="space-y-6">
+				<!-- Top actions -->
+				<div class="flex justify-between items-center">
+					<div class="flex items-center gap-2">
+						<button @click="prevMonth" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+						<h3 class="font-display font-bold text-lg text-slate-200 px-2">{{ currentMonthName }}</h3>
+						<button @click="nextMonth" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+					</div>
+					
+					<button @click="showNewPostModal = true" class="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm px-4 py-2.5 rounded-xl shadow-lg shadow-brand-500/25 transition">
+						<i data-lucide="plus" class="w-4 h-4"></i>
+						<span>Schedule Post</span>
+					</button>
+				</div>
+
+				<!-- Calendar Grid -->
+				<div class="glass-panel rounded-2xl overflow-hidden">
+					<div class="grid grid-cols-7 gap-px bg-slate-800 text-center font-bold text-xs text-slate-500 uppercase tracking-wider py-3">
+						<div>Sun</div>
+						<div>Mon</div>
+						<div>Tue</div>
+						<div>Wed</div>
+						<div>Thu</div>
+						<div>Fri</div>
+						<div>Sat</div>
+					</div>
+					
+					<div class="grid grid-cols-7 gap-px bg-slate-800/40">
+						<div v-for="day in calendarDays" :key="day.dateStr" 
+							:class="['min-h-[120px] p-2 bg-slate-900/60 flex flex-col justify-between transition hover:bg-slate-800/25', day.isCurrentMonth ? '' : 'opacity-40']">
+							<span class="text-xs font-bold text-slate-400">{{ day.dayNum }}</span>
+							<div class="mt-2 space-y-1.5 flex-1 overflow-y-auto">
+								<div v-for="event in day.events" :key="event.name"
+									:class="['text-[10px] px-2 py-1 rounded font-bold border truncate cursor-pointer', getCalendarEventClass(event.status)]"
+									@click="viewPostDetails(event)">
+									{{ event.title }}
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Tab: Inbox (Messenger) -->
+			<div v-if="currentTab === 'inbox'" class="glass-panel rounded-2xl h-[calc(100vh-12rem)] flex overflow-hidden">
+				<!-- Conversation List -->
+				<div class="w-80 border-r border-slate-800/80 flex flex-col shrink-0">
+					<div class="p-4 border-b border-slate-800/40">
+						<div class="relative">
+							<input type="text" placeholder="Search chats..." class="w-full bg-slate-800/60 border border-slate-700/80 rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/50">
+							<i data-lucide="search" class="w-4 h-4 text-slate-500 absolute right-3 top-2.5"></i>
+						</div>
+					</div>
+					<div class="flex-1 overflow-y-auto divide-y divide-slate-800/40">
+						<div v-for="chat in inboxChats" :key="chat.conversation_id" 
+							@click="selectConversation(chat)"
+							:class="['p-4 flex gap-3 cursor-pointer transition hover:bg-slate-800/30', selectedChat && selectedChat.conversation_id === chat.conversation_id ? 'bg-slate-800/45 border-l-4 border-brand-500' : '']">
+							<div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-200 shrink-0">
+								{{ chat.sender_name[0] }}
+							</div>
+							<div class="flex-1 min-w-0">
+								<div class="flex justify-between items-baseline">
+									<h4 class="text-xs font-bold text-slate-200 truncate">{{ chat.sender_name }}</h4>
+									<span class="text-[9px] text-slate-500">{{ formatChatTime(chat.last_message_time) }}</span>
+								</div>
+								<p class="text-xs text-slate-400 truncate mt-0.5">{{ chat.last_message || 'Attachment' }}</p>
+								<div class="flex items-center gap-1.5 mt-1.5">
+									<span v-if="chat.unread_count > 0" class="bg-brand-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-extrabold">{{ chat.unread_count }}</span>
+									<span class="text-[9px] px-2 py-0.5 rounded-full font-bold border" :class="chat.conversation_status === 'Open' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'">
+										{{ chat.conversation_status }}
+									</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Conversation Window -->
+				<div class="flex-1 flex flex-col bg-slate-950/15">
+					<template v-if="selectedChat">
+						<!-- Chat Header -->
+						<div class="h-16 border-b border-slate-800/80 flex items-center justify-between px-6 shrink-0">
+							<div class="flex items-center gap-3">
+								<div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-200">
+									{{ selectedChat.sender_name[0] }}
+								</div>
+								<div>
+									<h4 class="text-sm font-bold text-slate-200">{{ selectedChat.sender_name }}</h4>
+									<p class="text-[10px] text-slate-500">ID: {{ selectedChat.sender_id }}</p>
+								</div>
+							</div>
+							
+							<div class="flex items-center gap-2">
+								<select v-model="selectedChat.conversation_status" @change="changeChatStatus(selectedChat)" class="bg-slate-800 text-xs px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">
+									<option value="Open">Open</option>
+									<option value="Pending">Pending</option>
+									<option value="Resolved">Resolved</option>
+								</select>
+							</div>
+						</div>
+
+						<!-- Message Bubble Container -->
+						<div ref="chatContainer" class="flex-1 overflow-y-auto p-6 space-y-4">
+							<div v-for="msg in activeMessages" :key="msg.name"
+								:class="['flex gap-3 max-w-[70%]', msg.direction === 'Outgoing' ? 'ml-auto flex-row-reverse' : '']">
+								<div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-200 shrink-0">
+									{{ msg.direction === 'Outgoing' ? 'Me' : selectedChat.sender_name[0] }}
+								</div>
+								<div>
+									<div :class="['p-3.5 rounded-2xl text-sm shadow-sm', msg.direction === 'Outgoing' ? 'bg-brand-600 text-white rounded-tr-none' : 'bg-slate-800/85 text-slate-100 rounded-tl-none border border-slate-700/30']">
+										<p>{{ msg.message }}</p>
+									</div>
+									<p class="text-[9px] text-slate-500 mt-1" :class="msg.direction === 'Outgoing' ? 'text-right' : ''">{{ formatChatTime(msg.timestamp) }}</p>
+								</div>
+							</div>
+						</div>
+
+						<!-- Message Input Box -->
+						<div class="p-4 border-t border-slate-800/80 shrink-0 flex items-center gap-3">
+							<input v-model="replyText" @keyup.enter="sendMessage" type="text" placeholder="Type your response..." class="flex-1 bg-slate-850/80 border border-slate-750/80 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50">
+							<button @click="sendMessage" class="p-3 bg-brand-600 hover:bg-brand-500 text-white rounded-xl shadow-lg shadow-brand-500/25 transition">
+								<i data-lucide="send" class="w-5 h-5"></i>
+							</button>
+						</div>
+					</template>
+					<div v-else class="flex-1 flex flex-col items-center justify-center text-slate-500">
+						<i data-lucide="message-square" class="w-12 h-12 mb-3 opacity-40"></i>
+						<p class="text-sm font-semibold">Select a conversation thread to start messaging</p>
+					</div>
+				</div>
+			</div>
+
+			<!-- Tab: AI Automation -->
+			<div v-if="currentTab === 'ai'" class="space-y-6">
+				<!-- Header Actions -->
+				<div class="flex justify-between items-center bg-slate-950/20 p-4 rounded-xl border border-slate-800/30">
+					<div>
+						<h3 class="font-display font-bold text-base text-slate-200">AI Automation Hub</h3>
+						<p class="text-xs text-slate-500">Approve AI responses to page comments or let the system auto-publish based on confidence threshold.</p>
+					</div>
+					<div class="flex items-center gap-2">
+						<span class="text-xs text-slate-400">Confidence Threshold:</span>
+						<span class="bg-brand-500/20 text-brand-300 font-extrabold text-xs px-2.5 py-1 rounded border border-brand-500/20">> 85% Auto</span>
+					</div>
+				</div>
+
+				<!-- AI Approvals Table -->
+				<div class="glass-panel rounded-2xl overflow-hidden">
+					<table class="w-full text-left border-collapse">
+						<thead>
+							<tr class="bg-slate-800/60 border-b border-slate-800 font-bold text-xs text-slate-400 uppercase tracking-wider">
+								<th class="p-4">Commenter</th>
+								<th class="p-4">Original Comment</th>
+								<th class="p-4">Sentiment</th>
+								<th class="p-4">AI Suggested Reply</th>
+								<th class="p-4">Confidence</th>
+								<th class="p-4">Actions</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-slate-800/50">
+							<tr v-for="reply in aiReplies" :key="reply.name" class="hover:bg-slate-800/20 transition-all text-xs">
+								<td class="p-4 font-bold text-slate-300">{{ reply.comment_author }}</td>
+								<td class="p-4 text-slate-400 max-w-xs truncate">{{ reply.original_comment }}</td>
+								<td class="p-4">
+									<span :class="['px-2 py-0.5 rounded font-extrabold border uppercase text-[9px]', getSentimentClass(reply.sentiment)]">
+										{{ reply.sentiment }}
+									</span>
+								</td>
+								<td class="p-4 text-slate-300 font-medium">
+									<div v-if="reply.editing" class="flex gap-2">
+										<textarea v-model="reply.generated_reply" class="w-full bg-slate-800 border border-slate-700 rounded p-1 text-xs text-white focus:outline-none"></textarea>
+										<button @click="saveEditedReply(reply)" class="p-1 text-emerald-400 hover:text-emerald-300"><i data-lucide="check" class="w-4 h-4"></i></button>
+									</div>
+									<div v-else class="flex items-center gap-2">
+										<span>{{ reply.generated_reply }}</span>
+										<button @click="reply.editing = true" class="text-slate-500 hover:text-slate-300"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button>
+									</div>
+								</td>
+								<td class="p-4 font-bold text-brand-400">{{ (reply.confidence_score * 100).toFixed(0) }}%</td>
+								<td class="p-4">
+									<div class="flex gap-2">
+										<button @click="approveReply(reply)" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded transition">Approve</button>
+										<button @click="rejectReply(reply)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-3 py-1.5 rounded transition">Reject</button>
+									</div>
+								</td>
+							</tr>
+							<tr v-if="aiReplies.length === 0">
+								<td colspan="6" class="p-8 text-center text-slate-500">No AI-generated replies pending approval</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			<!-- Tab: Campaigns (Ads) -->
+			<div v-if="currentTab === 'campaigns'" class="space-y-6">
+				<!-- Ad Accounts / Selector -->
+				<div class="flex justify-between items-center">
+					<h3 class="font-display font-bold text-lg text-slate-200">Active Ad Campaigns</h3>
+					<div class="flex items-center gap-2">
+						<select class="bg-slate-800 text-xs px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">
+							<option>Main Ad Account (act_10395)</option>
+						</select>
+					</div>
+				</div>
+
+				<!-- Campaigns Grid -->
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+					<div v-for="camp in campaigns" :key="camp.campaign_id" class="glass-panel p-5 rounded-2xl flex flex-col justify-between border-l-4" :class="camp.status === 'Active' ? 'border-l-emerald-500' : 'border-l-slate-600'">
+						<div>
+							<div class="flex justify-between items-start">
+								<h4 class="font-bold text-sm text-slate-200">{{ camp.campaign_name }}</h4>
+								<span class="text-[9px] px-2 py-0.5 rounded font-extrabold uppercase border" :class="camp.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'">
+									{{ camp.status }}
+								</span>
+							</div>
+							<p class="text-[10px] text-slate-500 mt-1">Objective: {{ camp.objective }}</p>
+						</div>
+
+						<div class="grid grid-cols-3 gap-2 my-5 text-center bg-slate-950/25 p-3 rounded-xl border border-slate-800/40">
+							<div>
+								<span class="text-[9px] text-slate-500 font-semibold block uppercase">Impressions</span>
+								<span class="text-xs font-bold text-slate-300">{{ camp.impressions }}</span>
+							</div>
+							<div>
+								<span class="text-[9px] text-slate-500 font-semibold block uppercase">Clicks</span>
+								<span class="text-xs font-bold text-slate-300">{{ camp.clicks }}</span>
+							</div>
+							<div>
+								<span class="text-[9px] text-slate-500 font-semibold block uppercase">Spend</span>
+								<span class="text-xs font-bold text-brand-400">${{ camp.spend }}</span>
+							</div>
+						</div>
+
+						<div class="flex justify-between text-[10px] text-slate-500 font-semibold">
+							<span>Start: {{ camp.start_date }}</span>
+							<span>End: {{ camp.end_date || 'Ongoing' }}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Tab: Media Library -->
+			<div v-if="currentTab === 'media'" class="space-y-6">
+				<!-- Upload Banner -->
+				<div class="flex justify-between items-center">
+					<h3 class="font-display font-bold text-lg text-slate-200">Creative Media Library</h3>
+					<button class="relative flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm px-4 py-2.5 rounded-xl shadow-lg shadow-brand-500/25 transition">
+						<i data-lucide="upload-cloud" class="w-4 h-4"></i>
+						<span>Upload Media</span>
+						<input type="file" @change="uploadMedia" class="absolute inset-0 opacity-0 cursor-pointer">
+					</button>
+				</div>
+
+				<!-- Gallery Grid -->
+				<div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+					<div v-for="media in mediaItems" :key="media.name" class="glass-panel rounded-2xl overflow-hidden flex flex-col group border border-slate-800/50 hover:border-brand-500/30 transition-all duration-300">
+						<div class="h-40 bg-slate-950 relative overflow-hidden flex items-center justify-center">
+							<img :src="media.file" class="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300" v-if="media.media_type === 'Image'">
+							<video :src="media.file" class="w-full h-full object-cover" v-else-if="media.media_type === 'Video'"></video>
+							<div class="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+								<button @click="copyFileUrl(media.file)" class="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg"><i data-lucide="copy" class="w-4.5 h-4.5"></i></button>
+								<a :href="media.file" target="_blank" class="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg"><i data-lucide="external-link" class="w-4.5 h-4.5"></i></a>
+							</div>
+						</div>
+						<div class="p-4 flex-1 flex flex-col justify-between">
+							<div>
+								<h4 class="font-bold text-xs text-slate-200 truncate">{{ media.title }}</h4>
+								<p class="text-[9px] text-slate-500 mt-1 uppercase">{{ media.media_type }} • {{ media.tags || 'No tags' }}</p>
+							</div>
+							<div class="flex justify-between items-center mt-3 pt-3 border-t border-slate-800/40 text-[9px] text-slate-500 font-semibold">
+								<span>Usage: {{ media.usage_count }} times</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Tab: Settings -->
+			<div v-if="currentTab === 'settings'" class="max-w-3xl glass-panel p-6 rounded-2xl space-y-6">
+				<div>
+					<h3 class="font-display font-bold text-base text-slate-200">Integration Configuration</h3>
+					<p class="text-xs text-slate-500">Configure Graph API version, AI provider details, and system parameters.</p>
+				</div>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-5 text-sm">
+					<div>
+						<label class="font-bold text-slate-400 block mb-1 text-xs uppercase">Graph API Version</label>
+						<input v-model="settings.graph_api_version" type="text" class="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/50">
+					</div>
+					<div>
+						<label class="font-bold text-slate-400 block mb-1 text-xs uppercase">AI Provider</label>
+						<select v-model="settings.ai_provider" class="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/50">
+							<option value="primellm">PrimeLLM</option>
+							<option value="anthropic">Anthropic</option>
+							<option value="openai">OpenAI</option>
+						</select>
+					</div>
+					<div>
+						<label class="font-bold text-slate-400 block mb-1 text-xs uppercase">AI API Endpoint URL</label>
+						<input v-model="settings.ai_api_url" type="text" class="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/50">
+					</div>
+					<div>
+						<label class="font-bold text-slate-400 block mb-1 text-xs uppercase">AI Model Name</label>
+						<input v-model="settings.ai_model_name" type="text" class="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/50">
+					</div>
+					<div class="md:col-span-2">
+						<label class="font-bold text-slate-400 block mb-1 text-xs uppercase">AI API Secret Key</label>
+						<input v-model="settings.ai_api_key" type="password" placeholder="••••••••••••••••" class="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/50">
+					</div>
+				</div>
+
+				<div class="pt-4 border-t border-slate-800/40 flex justify-end">
+					<button @click="saveSettings" class="bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition shadow-lg shadow-brand-500/20">
+						Save Configurations
+					</button>
+				</div>
+			</div>
+		</div>
+	</main>
+
+	<!-- Modal: Create Post / Schedule Post -->
+	<div v-if="showNewPostModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+		<div class="glass-panel w-full max-w-xl p-6 rounded-2xl space-y-6 text-sm relative">
+			<button @click="showNewPostModal = false" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
+				<i data-lucide="x" class="w-5 h-5"></i>
+			</button>
+			
+			<div>
+				<h3 class="font-display font-bold text-base text-slate-200">Schedule a New Post</h3>
+				<p class="text-xs text-slate-500">Draft your message, add attachments, and configure A/B test variants.</p>
+			</div>
+
+			<div class="space-y-4">
+				<div>
+					<label class="font-bold text-slate-400 block mb-1 text-xs uppercase">Message Content</label>
+					<textarea v-model="newPost.message" rows="4" placeholder="Write something inspiring..." class="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/50"></textarea>
+				</div>
+				
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label class="font-bold text-slate-400 block mb-1 text-xs uppercase">Post Type</label>
+						<select v-model="newPost.post_type" class="w-full bg-slate-800 border border-slate-750 rounded-xl px-3 py-2 focus:outline-none">
+							<option value="Text">Text Only</option>
+							<option value="Image">Image</option>
+							<option value="Video">Video</option>
+						</select>
+					</div>
+					<div>
+						<label class="font-bold text-slate-400 block mb-1 text-xs uppercase">Media URL / Attachment</label>
+						<input v-model="newPost.media_url" type="text" placeholder="https://example.com/image.jpg" class="w-full bg-slate-800 border border-slate-750 rounded-xl px-3 py-2 focus:outline-none">
+					</div>
+				</div>
+
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label class="font-bold text-slate-400 block mb-1 text-xs uppercase">Schedule Time</label>
+						<input v-model="newPost.schedule_time" type="datetime-local" class="w-full bg-slate-800 border border-slate-750 rounded-xl px-3 py-2 focus:outline-none text-slate-300">
+					</div>
+					<div>
+						<label class="font-bold text-slate-400 block mb-1 text-xs uppercase">First Comment</label>
+						<input v-model="newPost.first_comment" type="text" placeholder="Auto-comment text..." class="w-full bg-slate-800 border border-slate-750 rounded-xl px-3 py-2 focus:outline-none">
+					</div>
+				</div>
+			</div>
+
+			<div class="pt-4 border-t border-slate-800/40 flex justify-end gap-3">
+				<button @click="showNewPostModal = false" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2.5 rounded-xl transition">Cancel</button>
+				<button @click="schedulePostSubmit" class="bg-brand-600 hover:bg-brand-500 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-lg shadow-brand-500/20">Schedule Post</button>
+			</div>
+		</div>
+	</div>
+</div>
+{% endraw %}
+
+<script>
+	const { createApp, ref, onMounted, computed, nextTick } = Vue;
+
+	createApp({
+		setup() {
+			const _data = window.fbPortalData || {};
+			const userFullName = ref(_data.userFullName || '');
+			const userEmail = ref(_data.userEmail || '');
+			const csrfToken = ref(_data.csrfToken || '');
+			
+			// User initials
+			const userInitials = computed(() => {
+				const names = userFullName.value.split(' ');
+				return names.map(n => n[0]).join('').toUpperCase().slice(0, 2);
+			});
+
+			const pages = ref(_data.pages || []);
+			const selectedPageId = ref(pages.value[0]?.name || '');
+			
+			const selectedPage = computed(() => {
+				return pages.value.find(p => p.name === selectedPageId.value);
+			});
+
+			const loading = ref(false);
+			const currentTab = ref('dashboard');
+			const tabs = [
+				{ id: 'dashboard', name: 'Dashboard', icon: 'layout-dashboard' },
+				{ id: 'calendar', name: 'Content Calendar', icon: 'calendar' },
+				{ id: 'inbox', name: 'Messenger Inbox', icon: 'message-circle', badge: () => inboxChats.value.reduce((acc, c) => acc + (c.unread_count || 0), 0) },
+				{ id: 'ai', name: 'AI Automations', icon: 'sparkles', badge: () => aiReplies.value.length },
+				{ id: 'campaigns', name: 'Ad Campaigns', icon: 'megaphone' },
+				{ id: 'media', name: 'Media Library', icon: 'image' },
+				{ id: 'settings', name: 'Settings', icon: 'sliders' }
+			];
+
+			const currentTabName = computed(() => {
+				return tabs.find(t => t.id === currentTab.value)?.name || 'Dashboard';
+			});
+
+			// Page Stats
+			const pageStats = ref({
+				likes: 0,
+				followers: 0,
+				engagementRate: '0%',
+				views: 0
+			});
+
+			// Recent Actions
+			const recentActions = ref([]);
+
+			// Calendar
+			const currentMonthName = ref('July 2026');
+			const calendarDays = ref([]);
+			const showNewPostModal = ref(false);
+			const newPost = ref({
+				message: '',
+				post_type: 'Text',
+				media_url: '',
+				schedule_time: '',
+				first_comment: ''
+			});
+
+			// Inbox
+			const inboxChats = ref([]);
+			const selectedChat = ref(null);
+			const activeMessages = ref([]);
+			const replyText = ref('');
+			const chatContainer = ref(null);
+
+			// AI Automation
+			const aiReplies = ref([]);
+
+			// Campaigns
+			const campaigns = ref([]);
+
+			// Media Library
+			const mediaItems = ref([]);
+
+			// Settings
+			const settings = ref({
+				graph_api_version: 'v21.0',
+				ai_provider: 'primellm',
+				ai_api_url: '',
+				ai_model_name: '',
+				ai_api_key: ''
+			});
+
+			// Alerts/Push notifications stack
+			const alerts = ref([]);
+
+			// Fetch helper
+			const callApi = async (method, args = {}) => {
+				loading.value = true;
+				try {
+					const response = await fetch(`/api/method/social_media.facebook.portal_api.${method}`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-Frappe-CSRF-Token': csrfToken.value
+						},
+						body: JSON.stringify(args)
+					});
+					const res = await response.json();
+					if (res.message && res.message.success) {
+						return res.message;
+					} else {
+						console.error(res.message?.message || 'API error');
+						return null;
+					}
+				} catch (e) {
+					console.error(e);
+					return null;
+				} finally {
+					loading.value = false;
+				}
+			};
+
+			const loadDashboard = async () => {
+				if (!selectedPageId.value) return;
+				// Mock or pull fresh details
+				const res = await callApi('get_page_details', { page_id: selectedPageId.value });
+				if (res && res.data) {
+					pageStats.value.likes = res.data.fan_count || pageStats.value.likes;
+					pageStats.value.followers = res.data.followers_count || pageStats.value.followers;
+				}
+				
+				// Init Chart
+				nextTick(() => {
+					initPerformanceChart();
+				});
+			};
+
+			const loadInbox = async () => {
+				if (!selectedPageId.value) return;
+				const res = await callApi('get_conversations', { page_id: selectedPageId.value });
+				if (res && res.data) {
+					inboxChats.value = res.data;
+				}
+			};
+
+			const loadAIReplies = async () => {
+				// Query comments with AI Replies
+				const res = await callApi('get_comments', { page_id: selectedPageId.value, limit: 10 });
+				if (res && res.data) {
+					// Filter comments that have pending AI replies
+					// For demonstration, map comments to AI Replies
+					aiReplies.value = res.data.filter(c => !c.reply_message).map(c => ({
+						name: c.name,
+						comment_id: c.comment_id,
+						comment_author: c.commenter_name,
+						original_comment: c.message,
+						sentiment: c.sentiment || 'Neutral',
+						sentiment_score: c.sentiment_score || 0.0,
+						confidence_score: 0.88,
+						generated_reply: 'Thank you for reaching out! We are glad to hear from you.',
+						editing: false
+					}));
+				}
+			};
+
+			const loadCalendar = async () => {
+				const startStr = '2026-07-01';
+				const endStr = '2026-07-31';
+				const res = await callApi('get_calendar_entries', { page_id: selectedPageId.value, start_date: startStr, end_date: endStr });
+				
+				// Generate calendar grid for July 2026
+				const days = [];
+				for (let i = 1; i <= 31; i++) {
+					const dateStr = `2026-07-${i.toString().padStart(2, '0')}`;
+					const events = res?.data?.filter(e => e.scheduled_date === dateStr) || [];
+					days.push({
+						dayNum: i,
+						dateStr,
+						isCurrentMonth: true,
+						events
+					});
+				}
+				calendarDays.value = days;
+			};
+
+			const loadCampaigns = async () => {
+				const res = await callApi('get_ad_campaigns', { page_id: selectedPageId.value });
+				if (res && res.data) {
+					campaigns.value = res.data;
+				} else {
+					campaigns.value = [];
+				}
+			};
+
+			const loadSettings = async () => {
+				const res = await callApi('get_portal_settings');
+				if (res && res.data) {
+					settings.value = res.data;
+				}
+			};
+
+			// Actions
+			const selectConversation = async (chat) => {
+				selectedChat.value = chat;
+				const res = await callApi('get_messages', { conversation_id: chat.conversation_id });
+				if (res && res.data) {
+					activeMessages.value = res.data;
+					nextTick(scrollChatBottom);
+				}
+			};
+
+			const sendMessage = async () => {
+				if (!replyText.value.trim() || !selectedChat.value) return;
+				const text = replyText.value;
+				replyText.value = '';
+				
+				const res = await callApi('send_message', {
+					page_id: selectedPageId.value,
+					recipient_id: selectedChat.value.sender_id,
+					message_text: text
+				});
+				
+				if (res && res.data) {
+					activeMessages.value.push(res.data);
+					nextTick(scrollChatBottom);
+					loadInbox(); // Refresh list to update last message
+				}
+			};
+
+			const changeChatStatus = async (chat) => {
+				await callApi('update_conversation_status', {
+					conversation_id: chat.conversation_id,
+					status: chat.conversation_status
+				});
+			};
+
+			const approveReply = async (reply) => {
+				// Approve reply and post to Facebook Page
+				const res = await callApi('reply_to_comment', {
+					comment_name: reply.name,
+					reply_message: reply.generated_reply
+				});
+				if (res) {
+					aiReplies.value = aiReplies.value.filter(r => r.name !== reply.name);
+				}
+			};
+
+			const rejectReply = (reply) => {
+				aiReplies.value = aiReplies.value.filter(r => r.name !== reply.name);
+			};
+
+			const saveEditedReply = (reply) => {
+				reply.editing = false;
+			};
+
+			const schedulePostSubmit = async () => {
+				if (!newPost.value.message) return;
+				const res = await callApi('create_post', {
+					page_id: selectedPageId.value,
+					message: newPost.value.message,
+					post_type: newPost.value.post_type,
+					media_url: newPost.value.media_url,
+					schedule_time: newPost.value.schedule_time || null,
+					first_comment: newPost.value.first_comment || null
+				});
+				if (res) {
+					showNewPostModal.value = false;
+					newPost.value = { message: '', post_type: 'Text', media_url: '', schedule_time: '', first_comment: '' };
+					loadCalendar();
+				}
+			};
+
+			const saveSettings = async () => {
+				// Call whitelist API to save
+				const res = await fetch(`/api/method/frappe.desk.form.save.savedocs`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-Frappe-CSRF-Token': csrfToken.value
+					},
+					body: JSON.stringify({
+						doc: JSON.stringify({
+							doctype: 'Facebook Settings',
+							name: 'Facebook Settings',
+							graph_api_version: settings.value.graph_api_version,
+							ai_provider: settings.value.ai_provider,
+							ai_api_url: settings.value.ai_api_url,
+							ai_model_name: settings.value.ai_model_name
+						})
+					})
+				});
+				if (res.ok) {
+					alert('Settings saved successfully!');
+				}
+			};
+
+			const onPageChange = () => {
+				loadDashboard();
+				loadInbox();
+				loadAIReplies();
+				loadCalendar();
+				loadCampaigns();
+			};
+
+			const scrollChatBottom = () => {
+				if (chatContainer.value) {
+					chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+				}
+			};
+
+			const formatChatTime = (t) => {
+				if (!t) return '';
+				const date = new Date(t);
+				return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+			};
+
+			const getSentimentClass = (sent) => {
+				if (sent === 'Positive') return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+				if (sent === 'Negative') return 'bg-red-500/10 text-red-400 border-red-500/20';
+				if (sent === 'Spam') return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+				return 'bg-slate-800 text-slate-400 border-slate-700';
+			};
+
+			const getCalendarEventClass = (status) => {
+				if (status === 'Published') return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20';
+				if (status === 'Scheduled') return 'bg-brand-500/15 text-brand-300 border-brand-500/20';
+				if (status === 'Failed') return 'bg-red-500/15 text-red-400 border-red-500/20';
+				return 'bg-slate-800 text-slate-300 border-slate-700';
+			};
+
+			let perfChart = null;
+			const initPerformanceChart = () => {
+				const ctx = document.getElementById('performanceChart');
+				if (!ctx) return;
+				if (perfChart) perfChart.destroy();
+				
+				perfChart = new Chart(ctx, {
+					type: 'line',
+					data: {
+						labels: ['Jul 01', 'Jul 05', 'Jul 10', 'Jul 15', 'Jul 20', 'Jul 25', 'Jul 30'],
+						datasets: [{
+							label: 'Reach',
+							data: [0, 0, 0, 0, 0, 0, 0],
+							borderColor: '#6366f1',
+							backgroundColor: 'rgba(99, 102, 241, 0.1)',
+							fill: true,
+							tension: 0.4
+						}]
+					},
+					options: {
+						responsive: true,
+						maintainAspectRatio: false,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
+							x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+						}
+					}
+				});
+			};
+
+			const logout = () => {
+				window.location.href = '/api/method/logout';
+			};
+
+			onMounted(() => {
+				lucide.createIcons();
+				if (selectedPageId.value) {
+					onPageChange();
+				}
+				loadSettings();
+			});
+
+			return {
+				userFullName, userEmail, userInitials,
+				pages, selectedPageId, selectedPage,
+				loading, currentTab, currentTabName, tabs,
+				pageStats, recentActions,
+				currentMonthName, calendarDays, showNewPostModal, newPost,
+				inboxChats, selectedChat, activeMessages, replyText, chatContainer,
+				aiReplies, campaigns, mediaItems, settings, alerts,
+				onPageChange, selectConversation, sendMessage, changeChatStatus,
+				approveReply, rejectReply, saveEditedReply, schedulePostSubmit, saveSettings,
+				formatChatTime, getSentimentClass, getCalendarEventClass, logout,
+				prevMonth: () => {}, nextMonth: () => {},
+				uploadMedia: () => {}, copyFileUrl: (url) => {
+					navigator.clipboard.writeText(url);
+					alert('URL copied to clipboard!');
+				}
+			};
+		}
+	}).mount('#app');
+</script>
+</body>
+</html>

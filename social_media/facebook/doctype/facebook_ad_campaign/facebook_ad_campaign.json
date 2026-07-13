@@ -1,0 +1,137 @@
+{
+ "actions": [],
+ "creation": "2026-07-12 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "campaign_id",
+  "campaign_name",
+  "ad_account",
+  "page",
+  "objective",
+  "status",
+  "daily_budget",
+  "lifetime_budget",
+  "start_date",
+  "end_date",
+  "impressions",
+  "clicks",
+  "spend",
+  "reach",
+  "raw_insights"
+ ],
+ "fields": [
+  {
+   "fieldname": "campaign_id",
+   "fieldtype": "Data",
+   "label": "Campaign ID",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "campaign_name",
+   "fieldtype": "Data",
+   "label": "Campaign Name",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ad_account",
+   "fieldtype": "Link",
+   "label": "Ad Account",
+   "options": "Facebook Ad Account",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "page",
+   "fieldtype": "Link",
+   "label": "Facebook Page",
+   "options": "Facebook Page"
+  },
+  {
+   "fieldname": "objective",
+   "fieldtype": "Data",
+   "label": "Objective"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nPaused\nDeleted\nArchived",
+   "default": "Active",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "daily_budget",
+   "fieldtype": "Currency",
+   "label": "Daily Budget"
+  },
+  {
+   "fieldname": "lifetime_budget",
+   "fieldtype": "Currency",
+   "label": "Lifetime Budget"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "impressions",
+   "fieldtype": "Int",
+   "label": "Impressions"
+  },
+  {
+   "fieldname": "clicks",
+   "fieldtype": "Int",
+   "label": "Clicks"
+  },
+  {
+   "fieldname": "spend",
+   "fieldtype": "Currency",
+   "label": "Spend"
+  },
+  {
+   "fieldname": "reach",
+   "fieldtype": "Int",
+   "label": "Reach"
+  },
+  {
+   "fieldname": "raw_insights",
+   "fieldtype": "JSON",
+   "label": "Raw Insights"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-12 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Facebook",
+ "name": "Facebook Ad Campaign",
+ "naming_rule": "By fieldname",
+ "autoname": "field:campaign_id",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

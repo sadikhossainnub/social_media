@@ -174,7 +174,8 @@ doc_events = {
 scheduler_events = {
 	"daily": [
 		"social_media.whatsapp.doctype.whatsapp_notification.whatsapp_notification.trigger_daily_whatsapp_notifications",
-		"social_media.facebook.doctype.facebook_auto_post_publisher.facebook_auto_post_publisher.analyze_post_engagement"
+		"social_media.facebook.doctype.facebook_auto_post_publisher.facebook_auto_post_publisher.analyze_post_engagement",
+		"social_media.facebook.insights.pull_daily_insights"
 	],
 	"cron": {
 		"*/5 * * * *": [
@@ -258,9 +259,9 @@ scheduler_events = {
 # Automatically update python controller files with type annotations for this app.
 # export_python_type_annotations = True
 
-# default_log_clearing_doctypes = {
-# 	"Logging DocType Name": 30  # days to retain logs
-# }
+default_log_clearing_doctypes = {
+	"Facebook API Log": 30  # days to retain logs
+}
 
 # Translation
 # ------------

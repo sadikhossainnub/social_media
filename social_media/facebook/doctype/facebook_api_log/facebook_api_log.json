@@ -1,0 +1,118 @@
+{
+ "actions": [],
+ "creation": "2026-07-12 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "request_url",
+  "method",
+  "request_params",
+  "request_body",
+  "response_status",
+  "response_body",
+  "error_message",
+  "duration_ms",
+  "page",
+  "user",
+  "timestamp"
+ ],
+ "fields": [
+  {
+   "fieldname": "request_url",
+   "fieldtype": "Small Text",
+   "label": "Request URL",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "method",
+   "fieldtype": "Data",
+   "label": "Method",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "request_params",
+   "fieldtype": "Long Text",
+   "label": "Request Parameters",
+   "read_only": 1
+  },
+  {
+   "fieldname": "request_body",
+   "fieldtype": "Long Text",
+   "label": "Request Body",
+   "read_only": 1
+  },
+  {
+   "fieldname": "response_status",
+   "fieldtype": "Int",
+   "label": "Response Status",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "response_body",
+   "fieldtype": "Long Text",
+   "label": "Response Body",
+   "read_only": 1
+  },
+  {
+   "fieldname": "error_message",
+   "fieldtype": "Small Text",
+   "label": "Error Message",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "duration_ms",
+   "fieldtype": "Float",
+   "label": "Duration (ms)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "page",
+   "fieldtype": "Link",
+   "label": "Facebook Page",
+   "options": "Facebook Page",
+   "read_only": 1
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "timestamp",
+   "fieldtype": "Datetime",
+   "label": "Timestamp",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-12 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Facebook",
+ "name": "Facebook API Log",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "timestamp",
+ "sort_order": "DESC",
+ "states": []
+}

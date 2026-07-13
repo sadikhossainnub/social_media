@@ -19,14 +19,17 @@
   "ai_model",
   "sentiment",
   "sentiment_score",
+  "confidence_score",
   "generated_reply",
   "approval_section",
   "approved_by",
   "approval_status",
+  "review_status",
   "is_published",
   "settings_section",
   "require_admin_approval",
   "auto_publish_on_approval",
+  "auto_publishable",
   "reply_tone"
  ],
  "fields": [
@@ -94,6 +97,12 @@
    "label": "Sentiment Score (-1 to 1)"
   },
   {
+   "fieldname": "confidence_score",
+   "fieldtype": "Float",
+   "label": "Confidence Score (0 to 1)",
+   "default": "0.0"
+  },
+  {
    "fieldname": "generated_reply",
    "fieldtype": "Text Editor",
    "label": "AI Generated Reply"
@@ -113,7 +122,15 @@
    "fieldname": "approval_status",
    "fieldtype": "Select",
    "label": "Approval Status",
-   "options": "Pending\nApproved\nRejected\nPublished"
+   "options": "Pending\nApproved\nRejected\nPublished",
+   "default": "Pending"
+  },
+  {
+   "fieldname": "review_status",
+   "fieldtype": "Select",
+   "label": "Review Status",
+   "options": "Auto\nNeeds Review\nReviewed",
+   "default": "Needs Review"
   },
   {
    "default": 0,
@@ -139,6 +156,12 @@
    "label": "Auto Publish When Approved"
   },
   {
+   "default": 0,
+   "fieldname": "auto_publishable",
+   "fieldtype": "Check",
+   "label": "Auto Publishable (If Confidence is High)"
+  },
+  {
    "fieldname": "reply_tone",
    "fieldtype": "Select",
    "label": "Reply Tone",
@@ -148,7 +171,7 @@
  "icon": "fa-comments",
  "idx": 1,
  "links": [],
- "modified": "2026-05-28 00:00:00.000000",
+ "modified": "2026-07-12 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Facebook",
  "name": "Facebook AI Comment Reply",

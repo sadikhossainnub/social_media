@@ -1,0 +1,102 @@
+{
+ "actions": [],
+ "creation": "2026-07-12 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "page",
+  "scheduled_date",
+  "scheduled_time",
+  "status",
+  "post",
+  "auto_post_publisher",
+  "content_preview",
+  "color_tag"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "page",
+   "fieldtype": "Link",
+   "label": "Facebook Page",
+   "options": "Facebook Page",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "scheduled_date",
+   "fieldtype": "Date",
+   "label": "Scheduled Date",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "scheduled_time",
+   "fieldtype": "Time",
+   "label": "Scheduled Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nScheduled\nPublished\nFailed",
+   "default": "Draft",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "post",
+   "fieldtype": "Link",
+   "label": "Facebook Post",
+   "options": "Facebook Post"
+  },
+  {
+   "fieldname": "auto_post_publisher",
+   "fieldtype": "Link",
+   "label": "Facebook Auto Post Publisher",
+   "options": "Facebook Auto Post Publisher"
+  },
+  {
+   "fieldname": "content_preview",
+   "fieldtype": "Text",
+   "label": "Content Preview"
+  },
+  {
+   "fieldname": "color_tag",
+   "fieldtype": "Color",
+   "label": "Color Tag"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-12 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Facebook",
+ "name": "Facebook Content Calendar",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "scheduled_date",
+ "sort_order": "ASC",
+ "states": []
+}

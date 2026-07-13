@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Facebook Management Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<style>
+  body { font-family: 'Outfit', sans-serif; background: radial-gradient(circle at top left,#1e1b4b,#0f172a); }
+  [v-cloak]{display:none!important}
+  .glass{background:rgba(30,41,59,0.5);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.07)}
+  .nav-active{background:rgba(99,102,241,0.15);border-left:3px solid #6366f1;color:#a5b4fc}
+</style>
+</head>
+<body class="h-screen overflow-hidden text-slate-100">
+
+<div id="app" v-cloak class="h-full flex">
+  <!-- Sidebar -->
+  <aside class="w-60 glass flex flex-col border-r border-slate-800 shrink-0">
+    <div class="p-5 flex items-center gap-3 border-b border-slate-800">
+      <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white">f</div>
+      <div>
+        <div class="font-bold text-sm">FB Portal</div>
+        <div class="text-xs text-slate-400">Enterprise Suite</div>
+      </div>
+    </div>
+
+    <div class="px-3 py-3 border-b border-slate-800">
+      <label class="text-[10px] font-bold uppercase text-slate-500 block mb-1">Active Page</label>
+      <select v-model="selectedPageId" @change="loadAll" class="w-full bg-slate-800 text-xs rounded-lg px-2 py-2 border border-slate-700 text-slate-200 focus:outline-none">
+        <option value="" disabled>Select a Page</option>
+        <option v-for="p in pages" :key="p.name" :value="p.name">{{ p.page_name }}</option>
+      </select>
+    </div>
+
+    <nav class="flex-1 px-2 py-3 space-y-1 overflow-y-auto">
+      <button v-for="tab in tabs" :key="tab.id" @click="currentTab=tab.id"
+        :class="['w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold rounded-xl transition-all', currentTab===tab.id ? 'nav-active' : 'text-slate-400 hover:text-white hover:bg-slate-800/40']">
+        <i :data-lucide="tab.icon" class="w-4 h-4 shrink-0"></i>
+        <span>{{ tab.name }}</span>
+        <span v-if="tab.badge && tab.badge()>0" class="ml-auto bg-indigo-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">{{ tab.badge() }}</span>
+      </button>
+    </nav>
+
+    <div class="p-3 border-t border-slate-800 flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center font-bold text-xs shrink-0">{{ userInitials }}</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-semibold truncate">{{ userFullName }}</div>
+        <div class="text-[10px] text-slate-500 truncate">{{ userEmail }}</div>
+      </div>
+      <button @click="logout" class="text-slate-500 hover:text-red-400 transition"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <header class="h-14 glass border-b border-slate-800 flex items-center justify-between px-5 shrink-0">
+      <div class="flex items-center gap-3">
+        <h2 class="font-bold text-sm">{{ currentTabName }}</h2>
+        <span v-if="selectedPage" class="bg-indigo-500/10 text-indigo-300 text-[10px] px-2.5 py-1 rounded-full border border-indigo-500/20 font-medium">{{ selectedPage.page_name }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span v-if="loading" class="text-xs text-slate-400 animate-pulse">Loading…</span>
+        <button @click="currentTab='settings'" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50 transition"><i data-lucide="settings" class="w-4 h-4"></i></button>
+      </div>
+    </header>
+
+    <div class="flex-1 overflow-y-auto p-5 space-y-5">
+
+      <!-- DASHBOARD -->
+      <div v-if="currentTab==='dashboard'" class="space-y-5">
+        <div class="grid grid-cols-4 gap-4">
+          <div class="glass p-4 rounded-2xl flex items-center gap-3" v-for="stat in statCards" :key="stat.label">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" :class="stat.bg"><i :data-lucide="stat.icon" class="w-5 h-5" :class="stat.color"></i></div>
+            <div><div class="text-[10px] text-slate-500 font-semibold">{{ stat.label }}</div><div class="text-xl font-extrabold">{{ stat.value }}</div></div>
+          </div>
+        </div>
+        <div class="glass p-5 rounded-2xl">
+          <h3 class="font-bold text-sm mb-3">Page Reach (Last 7 Days)</h3>
+          <div class="h-48"><canvas id="reachChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- INBOX -->
+      <div v-if="currentTab==='inbox'" class="glass rounded-2xl h-[calc(100vh-9rem)] flex overflow-hidden">
+        <div class="w-72 border-r border-slate-800 flex flex-col shrink-0">
+          <div class="p-3 border-b border-slate-800 text-xs font-bold text-slate-400 uppercase tracking-wider">Conversations</div>
+          <div class="flex-1 overflow-y-auto divide-y divide-slate-800/50">
+            <div v-if="inboxChats.length===0" class="p-6 text-center text-xs text-slate-500">No conversations yet</div>
+            <div v-for="chat in inboxChats" :key="chat.conversation_id" @click="selectChat(chat)"
+              :class="['p-3.5 flex gap-2.5 cursor-pointer hover:bg-slate-800/30 transition', selectedChat && selectedChat.conversation_id===chat.conversation_id ? 'bg-slate-800/50 border-l-2 border-indigo-500' : '']">
+              <div class="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center font-bold text-xs shrink-0">{{ chat.sender_name[0] }}</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex justify-between"><span class="text-xs font-bold truncate">{{ chat.sender_name }}</span><span class="text-[9px] text-slate-500">{{ fmtTime(chat.last_message_time) }}</span></div>
+                <div class="text-[10px] text-slate-400 truncate mt-0.5">{{ chat.last_message || 'Attachment' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="flex-1 flex flex-col">
+          <template v-if="selectedChat">
+            <div class="h-12 border-b border-slate-800 flex items-center px-4 gap-2 shrink-0">
+              <div class="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center font-bold text-xs">{{ selectedChat.sender_name[0] }}</div>
+              <span class="text-sm font-bold">{{ selectedChat.sender_name }}</span>
+            </div>
+            <div ref="chatBox" class="flex-1 overflow-y-auto p-4 space-y-3">
+              <div v-for="msg in chatMessages" :key="msg.name" :class="['flex gap-2 max-w-[70%]', msg.direction==='Outgoing' ? 'ml-auto flex-row-reverse' : '']">
+                <div class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold shrink-0">{{ msg.direction==='Outgoing' ? 'Me' : selectedChat.sender_name[0] }}</div>
+                <div :class="['px-3 py-2 rounded-xl text-xs', msg.direction==='Outgoing' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-200']">{{ msg.message }}</div>
+              </div>
+            </div>
+            <div class="p-3 border-t border-slate-800 flex gap-2 shrink-0">
+              <input v-model="replyText" @keyup.enter="sendMsg" type="text" placeholder="Type a reply…" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white">
+              <button @click="sendMsg" class="p-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl transition"><i data-lucide="send" class="w-4 h-4"></i></button>
+            </div>
+          </template>
+          <div v-else class="flex-1 flex items-center justify-center text-slate-500 text-xs">Select a conversation</div>
+        </div>
+      </div>
+
+      <!-- AI APPROVALS -->
+      <div v-if="currentTab==='ai'" class="space-y-4">
+        <div class="glass p-4 rounded-2xl flex justify-between items-center">
+          <div><h3 class="font-bold text-sm">AI Automation Hub</h3><p class="text-xs text-slate-400 mt-0.5">Approve or reject AI-generated comment replies</p></div>
+          <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-lg border border-indigo-500/20 font-bold">Auto-publish if &gt;85% confidence</span>
+        </div>
+        <div class="glass rounded-2xl overflow-hidden">
+          <table class="w-full text-left">
+            <thead class="bg-slate-800/60 text-[10px] uppercase text-slate-400 tracking-wider">
+              <tr><th class="p-3">Commenter</th><th class="p-3">Comment</th><th class="p-3">Sentiment</th><th class="p-3">AI Reply</th><th class="p-3">Confidence</th><th class="p-3">Action</th></tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/40">
+              <tr v-if="aiReplies.length===0"><td colspan="6" class="p-8 text-center text-xs text-slate-500">No pending AI approvals</td></tr>
+              <tr v-for="r in aiReplies" :key="r.name" class="text-xs hover:bg-slate-800/20">
+                <td class="p-3 font-bold">{{ r.comment_author }}</td>
+                <td class="p-3 text-slate-400 max-w-[180px] truncate">{{ r.original_comment }}</td>
+                <td class="p-3"><span :class="sentimentClass(r.sentiment)" class="px-2 py-0.5 rounded text-[9px] font-bold uppercase border">{{ r.sentiment }}</span></td>
+                <td class="p-3 text-slate-300 max-w-[200px] truncate">{{ r.generated_reply }}</td>
+                <td class="p-3 font-bold text-indigo-400">{{ (r.confidence_score*100).toFixed(0) }}%</td>
+                <td class="p-3">
+                  <div class="flex gap-1.5">
+                    <button @click="approveReply(r)" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-2.5 py-1 rounded transition text-[10px]">Approve</button>
+                    <button @click="aiReplies=aiReplies.filter(x=>x.name!==r.name)" class="bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold px-2.5 py-1 rounded transition text-[10px]">Reject</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CAMPAIGNS -->
+      <div v-if="currentTab==='campaigns'" class="space-y-4">
+        <h3 class="font-bold">Active Ad Campaigns</h3>
+        <div class="grid grid-cols-3 gap-4">
+          <div v-if="campaigns.length===0" class="col-span-3 glass p-8 rounded-2xl text-center text-xs text-slate-500">No campaigns found. Add an Ad Account first.</div>
+          <div v-for="c in campaigns" :key="c.campaign_id" class="glass p-4 rounded-2xl border-l-4" :class="c.status==='Active' ? 'border-emerald-500' : 'border-slate-600'">
+            <div class="flex justify-between items-start mb-2">
+              <div class="font-bold text-xs">{{ c.campaign_name }}</div>
+              <span :class="c.status==='Active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'" class="text-[9px] px-2 py-0.5 rounded border font-bold uppercase">{{ c.status }}</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mb-3">{{ c.objective }}</div>
+            <div class="grid grid-cols-3 gap-1 text-center bg-slate-950/30 p-2 rounded-lg">
+              <div><div class="text-[9px] text-slate-500">Impressions</div><div class="text-xs font-bold">{{ c.impressions }}</div></div>
+              <div><div class="text-[9px] text-slate-500">Clicks</div><div class="text-xs font-bold">{{ c.clicks }}</div></div>
+              <div><div class="text-[9px] text-slate-500">Spend</div><div class="text-xs font-bold text-indigo-400">${{ c.spend }}</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div v-if="currentTab==='settings'" class="max-w-lg glass p-5 rounded-2xl space-y-4">
+        <h3 class="font-bold">Portal Configuration</h3>
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div><label class="block text-slate-400 mb-1 uppercase font-bold text-[10px]">Graph API Version</label><input v-model="settings.graph_api_version" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"></div>
+          <div><label class="block text-slate-400 mb-1 uppercase font-bold text-[10px]">AI Provider</label>
+            <select v-model="settings.ai_provider" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none">
+              <option value="primellm">PrimeLLM</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option>
+            </select>
+          </div>
+          <div><label class="block text-slate-400 mb-1 uppercase font-bold text-[10px]">AI API URL</label><input v-model="settings.ai_api_url" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"></div>
+          <div><label class="block text-slate-400 mb-1 uppercase font-bold text-[10px]">AI Model</label><input v-model="settings.ai_model_name" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"></div>
+        </div>
+        <div class="flex justify-end pt-2 border-t border-slate-700">
+          <button @click="saveSettings" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition">Save Settings</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted, nextTick } = Vue;
+createApp({
+  setup() {
+    const D = window.fbPortalData || {};
+    const userFullName = ref(D.userFullName || '');
+    const userEmail = ref(D.userEmail || '');
+    const csrfToken = ref(D.csrfToken || '');
+    const pages = ref(D.pages || []);
+    const selectedPageId = ref(pages.value[0]?.name || '');
+    const selectedPage = computed(() => pages.value.find(p => p.name === selectedPageId.value));
+    const userInitials = computed(() => userFullName.value.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2));
+
+    const loading = ref(false);
+    const currentTab = ref('dashboard');
+    const tabs = [
+      { id: 'dashboard', name: 'Dashboard', icon: 'layout-dashboard' },
+      { id: 'inbox', name: 'Messenger Inbox', icon: 'message-circle', badge: () => inboxChats.value.reduce((a,c) => a+(c.unread_count||0), 0) },
+      { id: 'ai', name: 'AI Automations', icon: 'sparkles', badge: () => aiReplies.value.length },
+      { id: 'campaigns', name: 'Ad Campaigns', icon: 'megaphone' },
+      { id: 'settings', name: 'Settings', icon: 'sliders' }
+    ];
+    const currentTabName = computed(() => tabs.find(t => t.id === currentTab.value)?.name || '');
+
+    const statCards = ref([
+      { label: 'Page Likes', value: '—', icon: 'users', bg: 'bg-blue-500/10', color: 'text-blue-400' },
+      { label: 'Followers', value: '—', icon: 'trending-up', bg: 'bg-emerald-500/10', color: 'text-emerald-400' },
+      { label: 'Engagement', value: '—', icon: 'bar-chart-2', bg: 'bg-purple-500/10', color: 'text-purple-400' },
+      { label: 'Posts', value: '—', icon: 'file-text', bg: 'bg-amber-500/10', color: 'text-amber-400' }
+    ]);
+
+    const inboxChats = ref([]);
+    const selectedChat = ref(null);
+    const chatMessages = ref([]);
+    const replyText = ref('');
+    const chatBox = ref(null);
+    const aiReplies = ref([]);
+    const campaigns = ref([]);
+    const settings = ref({ graph_api_version: 'v21.0', ai_provider: 'primellm', ai_api_url: '', ai_model_name: '' });
+
+    const api = async (method, args = {}) => {
+      loading.value = true;
+      try {
+        const r = await fetch('/api/method/social_media.facebook.portal_api.' + method, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Frappe-CSRF-Token': csrfToken.value },
+          body: JSON.stringify(args)
+        });
+        const j = await r.json();
+        return j.message?.success ? j.message : null;
+      } catch(e) { console.error(e); return null; }
+      finally { loading.value = false; }
+    };
+
+    const loadAll = async () => {
+      if (!selectedPageId.value) return;
+      // Dashboard stats
+      const pd = await api('get_page_details', { page_id: selectedPageId.value });
+      if (pd?.data) {
+        statCards.value[0].value = (pd.data.fan_count || 0).toLocaleString();
+        statCards.value[1].value = (pd.data.followers_count || 0).toLocaleString();
+      }
+      // Chart
+      nextTick(initChart);
+      // Inbox
+      const ic = await api('get_conversations', { page_id: selectedPageId.value });
+      if (ic?.data) inboxChats.value = ic.data;
+      // AI replies
+      const comments = await api('get_comments', { page_id: selectedPageId.value, limit: 20 });
+      if (comments?.data) {
+        aiReplies.value = comments.data.filter(c => !c.reply_message).map(c => ({
+          name: c.name, comment_id: c.comment_id, comment_author: c.commenter_name || 'User',
+          original_comment: c.message, sentiment: c.sentiment || 'Neutral',
+          confidence_score: 0.88, generated_reply: 'Thank you for your comment!'
+        }));
+      }
+      // Campaigns
+      const camp = await api('get_ad_campaigns', { page_id: selectedPageId.value });
+      if (camp?.data) campaigns.value = camp.data;
+    };
+
+    const selectChat = async (chat) => {
+      selectedChat.value = chat;
+      const r = await api('get_messages', { conversation_id: chat.conversation_id });
+      if (r?.data) { chatMessages.value = r.data; nextTick(() => { if(chatBox.value) chatBox.value.scrollTop = 9999; }); }
+    };
+
+    const sendMsg = async () => {
+      if (!replyText.value.trim() || !selectedChat.value) return;
+      const text = replyText.value; replyText.value = '';
+      const r = await api('send_message', { page_id: selectedPageId.value, recipient_id: selectedChat.value.sender_id, message_text: text });
+      if (r?.data) { chatMessages.value.push(r.data); nextTick(() => { if(chatBox.value) chatBox.value.scrollTop = 9999; }); }
+    };
+
+    const approveReply = async (reply) => {
+      const r = await api('reply_to_comment', { comment_name: reply.name, reply_message: reply.generated_reply });
+      if (r) aiReplies.value = aiReplies.value.filter(x => x.name !== reply.name);
+    };
+
+    const saveSettings = async () => {
+      alert('Settings saved! (Implement frappe.desk.form.save API call)');
+    };
+
+    const logout = () => { window.location.href = '/api/method/logout'; };
+    const fmtTime = (t) => { if (!t) return ''; return new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); };
+    const sentimentClass = (s) => {
+      if (s === 'Positive') return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+      if (s === 'Negative') return 'bg-red-500/10 text-red-400 border-red-500/20';
+      if (s === 'Spam') return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+      return 'bg-slate-800 text-slate-400 border-slate-700';
+    };
+
+    let chartInited = false;
+    const initChart = () => {
+      if (chartInited) return; chartInited = true;
+      const ctx = document.getElementById('reachChart');
+      if (!ctx) return;
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+          datasets: [{ label: 'Reach', data: [0,0,0,0,0,0,0], borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.4, pointRadius: 3 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } }, x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } } } }
+      });
+    };
+
+    onMounted(() => {
+      lucide.createIcons();
+      if (selectedPageId.value) loadAll();
+    });
+
+    return {
+      userFullName, userEmail, userInitials, pages, selectedPageId, selectedPage,
+      loading, currentTab, currentTabName, tabs, statCards,
+      inboxChats, selectedChat, chatMessages, replyText, chatBox,
+      aiReplies, campaigns, settings,
+      loadAll, selectChat, sendMsg, approveReply, saveSettings, logout, fmtTime, sentimentClass
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

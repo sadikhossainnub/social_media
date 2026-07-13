@@ -13,11 +13,17 @@
   "facebook_post",
   "post_content",
   "post_image",
+  "ab_test_section",
+  "variant_b_content",
+  "variant_b_image",
+  "winning_variant",
   "scheduling_section",
   "schedule_type",
   "schedule_datetime",
   "best_time_enabled",
+  "suggested_best_time",
   "target_timezone",
+  "content_calendar",
   "publish_section",
   "publish_status",
   "published_datetime",
@@ -57,6 +63,27 @@
    "label": "Post Image/Video"
   },
   {
+   "fieldname": "ab_test_section",
+   "fieldtype": "Section Break",
+   "label": "A/B Testing"
+  },
+  {
+   "fieldname": "variant_b_content",
+   "fieldtype": "Text Editor",
+   "label": "Variant B Content"
+  },
+  {
+   "fieldname": "variant_b_image",
+   "fieldtype": "Attach",
+   "label": "Variant B Image/Video"
+  },
+  {
+   "fieldname": "winning_variant",
+   "fieldtype": "Select",
+   "label": "Winning Variant",
+   "options": "\nA\nB"
+  },
+  {
    "fieldname": "scheduling_section",
    "fieldtype": "Section Break",
    "label": "Scheduling"
@@ -81,10 +108,23 @@
    "label": "Use AI-Calculated Best Time"
   },
   {
+   "fieldname": "suggested_best_time",
+   "fieldtype": "Datetime",
+   "label": "Suggested Best Time",
+   "read_only": 1
+  },
+  {
    "default": "UTC",
    "fieldname": "target_timezone",
    "fieldtype": "Data",
    "label": "Target Timezone"
+  },
+  {
+   "fieldname": "content_calendar",
+   "fieldtype": "Link",
+   "label": "Content Calendar Entry",
+   "options": "Facebook Content Calendar",
+   "read_only": 1
   },
   {
    "fieldname": "publish_section",
@@ -130,7 +170,7 @@
  "icon": "fa-calendar-check",
  "idx": 1,
  "links": [],
- "modified": "2026-05-28 00:00:00.000000",
+ "modified": "2026-07-12 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Facebook",
  "name": "Facebook Auto Post Publisher",

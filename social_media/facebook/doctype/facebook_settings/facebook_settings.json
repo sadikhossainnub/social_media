@@ -1,208 +1,273 @@
 {
-    "actions": [],
-    "creation": "2026-05-29 00:00:00.000000",
-    "doctype": "DocType",
-    "engine": "InnoDB",
-    "field_order": [
-        "connection_section",
-        "is_connected",
-        "connection_status_html",
-        "app_credentials_section",
-        "app_id",
-        "app_secret",
-        "oauth_section",
-        "redirect_uri",
-        "connect_button",
-        "disconnect_button",
-        "page_info_section",
-        "page_id",
-        "page_name",
-        "page_access_token",
-        "user_token_section",
-        "user_access_token",
-        "token_expiry",
-        "refresh_token_button",
-        "messenger_section",
-        "messenger_verify_token",
-        "enable_lead_ads",
-        "enable_auto_post",
-        "enable_messenger",
-        "settings_section",
-        "auto_post_on_invoice",
-        "auto_post_on_order"
-    ],
-    "fields": [
-        {
-            "fieldname": "connection_section",
-            "fieldtype": "Section Break",
-            "label": "Connection Status"
-        },
-        {
-            "fieldname": "is_connected",
-            "fieldtype": "Check",
-            "label": "Connected to Facebook",
-            "read_only": 1,
-            "default": 0
-        },
-        {
-            "fieldname": "connection_status_html",
-            "fieldtype": "HTML",
-            "label": "Connection Status",
-            "options": "<div class=\"alert alert-info\" id=\"connection-status\"><p><strong>Status:</strong> Not Connected</p><p>Click \"Connect with Facebook\" to begin the OAuth flow.</p></div>"
-        },
-        {
-            "fieldname": "app_credentials_section",
-            "fieldtype": "Section Break",
-            "label": "App Credentials"
-        },
-        {
-            "fieldname": "app_id",
-            "fieldtype": "Data",
-            "label": "App ID",
-            "reqd": 1,
-            "description": "Your Facebook App ID from the Developer Dashboard"
-        },
-        {
-            "fieldname": "app_secret",
-            "fieldtype": "Password",
-            "label": "App Secret",
-            "reqd": 1,
-            "description": "Your Facebook App Secret (keep this confidential)"
-        },
-        {
-            "fieldname": "oauth_section",
-            "fieldtype": "Section Break",
-            "label": "OAuth Configuration"
-        },
-        {
-            "fieldname": "redirect_uri",
-            "fieldtype": "Data",
-            "label": "Redirect URI",
-            "read_only": 1,
-            "description": "Copy this URL to Facebook Developer Console > OAuth Settings"
-        },
-        {
-            "fieldname": "connect_button",
-            "fieldtype": "HTML",
-            "label": "Connect",
-            "options": "<button class=\"btn btn-primary\" id=\"connect-facebook\">Connect with Facebook</button>"
-        },
-        {
-            "fieldname": "disconnect_button",
-            "fieldtype": "HTML",
-            "label": "Disconnect",
-            "options": "<button class=\"btn btn-danger\" id=\"disconnect-facebook\" style=\"display:none;\">Disconnect</button>"
-        },
-        {
-            "fieldname": "page_info_section",
-            "fieldtype": "Section Break",
-            "label": "Page Information"
-        },
-        {
-            "fieldname": "page_id",
-            "fieldtype": "Data",
-            "label": "Page ID",
-            "read_only": 1
-        },
-        {
-            "fieldname": "page_name",
-            "fieldtype": "Data",
-            "label": "Page Name",
-            "read_only": 1
-        },
-        {
-            "fieldname": "page_access_token",
-            "fieldtype": "Password",
-            "label": "Page Access Token",
-            "read_only": 1
-        },
-        {
-            "fieldname": "user_token_section",
-            "fieldtype": "Section Break",
-            "label": "User Token"
-        },
-        {
-            "fieldname": "user_access_token",
-            "fieldtype": "Password",
-            "label": "User Access Token",
-            "read_only": 1
-        },
-        {
-            "fieldname": "token_expiry",
-            "fieldtype": "Datetime",
-            "label": "Token Expiry",
-            "read_only": 1
-        },
-        {
-            "fieldname": "refresh_token_button",
-            "fieldtype": "HTML",
-            "label": "Token Actions",
-            "options": "<button class=\"btn btn-default\" id=\"refresh-token\">Refresh Token</button>"
-        },
-        {
-            "fieldname": "messenger_section",
-            "fieldtype": "Section Break",
-            "label": "Messenger Settings"
-        },
-        {
-            "fieldname": "messenger_verify_token",
-            "fieldtype": "Data",
-            "label": "Messenger Verify Token",
-            "description": "Token for Messenger webhook verification"
-        },
-        {
-            "fieldname": "enable_lead_ads",
-            "fieldtype": "Check",
-            "label": "Enable Lead Ads Auto-Capture"
-        },
-        {
-            "fieldname": "enable_auto_post",
-            "fieldtype": "Check",
-            "label": "Enable Auto-Post"
-        },
-        {
-            "fieldname": "enable_messenger",
-            "fieldtype": "Check",
-            "label": "Enable Messenger Webhook"
-        },
-        {
-            "fieldname": "settings_section",
-            "fieldtype": "Section Break",
-            "label": "Auto-Post Settings"
-        },
-        {
-            "fieldname": "auto_post_on_invoice",
-            "fieldtype": "Check",
-            "label": "Auto-Post on Sales Invoice Submit",
-            "default": 1
-        },
-        {
-            "fieldname": "auto_post_on_order",
-            "fieldtype": "Check",
-            "label": "Auto-Post on Sales Order Submit",
-            "default": 1
-        }
-    ],
-    "issingle": 1,
-    "links": [],
-    "modified": "2026-05-29 00:00:00.000000",
-    "modified_by": "Administrator",
-    "module": "Facebook",
-    "name": "Facebook Settings",
-    "owner": "Administrator",
-    "permissions": [
-        {
-            "create": 1,
-            "delete": 1,
-            "email": 1,
-            "print": 1,
-            "read": 1,
-            "role": "System Manager",
-            "share": 1,
-            "write": 1
-        }
-    ],
-    "sort_field": "modified",
-    "sort_order": "DESC",
-    "states": []
+ "actions": [],
+ "creation": "2026-05-29 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "connection_section",
+  "is_connected",
+  "connection_status_html",
+  "app_credentials_section",
+  "app_id",
+  "app_secret",
+  "graph_api_version",
+  "webhook_signature_secret",
+  "oauth_section",
+  "redirect_uri",
+  "connect_button",
+  "disconnect_button",
+  "page_info_section",
+  "page_id",
+  "page_name",
+  "page_access_token",
+  "user_token_section",
+  "user_access_token",
+  "token_expiry",
+  "refresh_token_button",
+  "messenger_section",
+  "messenger_verify_token",
+  "enable_lead_ads",
+  "enable_auto_post",
+  "enable_messenger",
+  "enable_realtime_notifications",
+  "ai_section",
+  "ai_provider",
+  "ai_api_url",
+  "ai_api_key",
+  "ai_model_name",
+  "settings_section",
+  "auto_post_on_invoice",
+  "auto_post_on_order",
+  "team_roles_section",
+  "team_roles"
+ ],
+ "fields": [
+  {
+   "fieldname": "connection_section",
+   "fieldtype": "Section Break",
+   "label": "Connection Status"
+  },
+  {
+   "fieldname": "is_connected",
+   "fieldtype": "Check",
+   "label": "Connected to Facebook",
+   "read_only": 1,
+   "default": 0
+  },
+  {
+   "fieldname": "connection_status_html",
+   "fieldtype": "HTML",
+   "label": "Connection Status",
+   "options": "<div class=\"alert alert-info\" id=\"connection-status\"><p><strong>Status:</strong> Not Connected</p><p>Click \"Connect with Facebook\" to begin the OAuth flow.</p></div>"
+  },
+  {
+   "fieldname": "app_credentials_section",
+   "fieldtype": "Section Break",
+   "label": "App Credentials"
+  },
+  {
+   "fieldname": "app_id",
+   "fieldtype": "Data",
+   "label": "App ID",
+   "reqd": 1,
+   "description": "Your Facebook App ID from the Developer Dashboard"
+  },
+  {
+   "fieldname": "app_secret",
+   "fieldtype": "Password",
+   "label": "App Secret",
+   "reqd": 1,
+   "description": "Your Facebook App Secret (keep this confidential)"
+  },
+  {
+   "fieldname": "graph_api_version",
+   "fieldtype": "Data",
+   "label": "Graph API Version",
+   "default": "v21.0"
+  },
+  {
+   "fieldname": "webhook_signature_secret",
+   "fieldtype": "Password",
+   "label": "Webhook Signature Secret"
+  },
+  {
+   "fieldname": "oauth_section",
+   "fieldtype": "Section Break",
+   "label": "OAuth Configuration"
+  },
+  {
+   "fieldname": "redirect_uri",
+   "fieldtype": "Data",
+   "label": "Redirect URI",
+   "read_only": 1,
+   "description": "Copy this URL to Facebook Developer Console > OAuth Settings"
+  },
+  {
+   "fieldname": "connect_button",
+   "fieldtype": "HTML",
+   "label": "Connect",
+   "options": "<button class=\"btn btn-primary\" id=\"connect-facebook\">Connect with Facebook</button>"
+  },
+  {
+   "fieldname": "disconnect_button",
+   "fieldtype": "HTML",
+   "label": "Disconnect",
+   "options": "<button class=\"btn btn-danger\" id=\"disconnect-facebook\" style=\"display:none;\">Disconnect</button>"
+  },
+  {
+   "fieldname": "page_info_section",
+   "fieldtype": "Section Break",
+   "label": "Page Information"
+  },
+  {
+   "fieldname": "page_id",
+   "fieldtype": "Data",
+   "label": "Page ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "page_name",
+   "fieldtype": "Data",
+   "label": "Page Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "page_access_token",
+   "fieldtype": "Password",
+   "label": "Page Access Token",
+   "read_only": 1
+  },
+  {
+   "fieldname": "user_token_section",
+   "fieldtype": "Section Break",
+   "label": "User Token"
+  },
+  {
+   "fieldname": "user_access_token",
+   "fieldtype": "Password",
+   "label": "User Access Token",
+   "read_only": 1
+  },
+  {
+   "fieldname": "token_expiry",
+   "fieldtype": "Datetime",
+   "label": "Token Expiry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "refresh_token_button",
+   "fieldtype": "HTML",
+   "label": "Token Actions",
+   "options": "<button class=\"btn btn-default\" id=\"refresh-token\">Refresh Token</button>"
+  },
+  {
+   "fieldname": "messenger_section",
+   "fieldtype": "Section Break",
+   "label": "Messenger Settings"
+  },
+  {
+   "fieldname": "messenger_verify_token",
+   "fieldtype": "Data",
+   "label": "Messenger Verify Token",
+   "description": "Token for Messenger webhook verification"
+  },
+  {
+   "fieldname": "enable_lead_ads",
+   "fieldtype": "Check",
+   "label": "Enable Lead Ads Auto-Capture"
+  },
+  {
+   "fieldname": "enable_auto_post",
+   "fieldtype": "Check",
+   "label": "Enable Auto-Post"
+  },
+  {
+   "fieldname": "enable_messenger",
+   "fieldtype": "Check",
+   "label": "Enable Messenger Webhook"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_realtime_notifications",
+   "fieldtype": "Check",
+   "label": "Enable Realtime Notifications"
+  },
+  {
+   "fieldname": "ai_section",
+   "fieldtype": "Section Break",
+   "label": "AI Configuration"
+  },
+  {
+   "fieldname": "ai_provider",
+   "fieldtype": "Select",
+   "label": "AI Provider",
+   "options": "primellm\nanthropic\nopenai",
+   "default": "primellm"
+  },
+  {
+   "fieldname": "ai_api_url",
+   "fieldtype": "Data",
+   "label": "AI API URL"
+  },
+  {
+   "fieldname": "ai_api_key",
+   "fieldtype": "Password",
+   "label": "AI API Key"
+  },
+  {
+   "fieldname": "ai_model_name",
+   "fieldtype": "Data",
+   "label": "AI Model Name"
+  },
+  {
+   "fieldname": "settings_section",
+   "fieldtype": "Section Break",
+   "label": "Auto-Post Settings"
+  },
+  {
+   "fieldname": "auto_post_on_invoice",
+   "fieldtype": "Check",
+   "label": "Auto-Post on Sales Invoice Submit",
+   "default": 1
+  },
+  {
+   "fieldname": "auto_post_on_order",
+   "fieldtype": "Check",
+   "label": "Auto-Post on Sales Order Submit",
+   "default": 1
+  },
+  {
+   "fieldname": "team_roles_section",
+   "fieldtype": "Section Break",
+   "label": "Team Roles"
+  },
+  {
+   "fieldname": "team_roles",
+   "fieldtype": "Table",
+   "label": "Team Roles",
+   "options": "Facebook Team Role"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-07-12 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Facebook",
+ "name": "Facebook Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
 }

@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "creation": "2026-07-12 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "page",
+  "can_post",
+  "can_comment",
+  "can_message",
+  "can_ads",
+  "can_insights",
+  "can_settings"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "page",
+   "fieldtype": "Link",
+   "label": "Facebook Page",
+   "options": "Facebook Page",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "can_post",
+   "fieldtype": "Check",
+   "label": "Can Post",
+   "in_list_view": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "can_comment",
+   "fieldtype": "Check",
+   "label": "Can Comment",
+   "in_list_view": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "can_message",
+   "fieldtype": "Check",
+   "label": "Can Message",
+   "in_list_view": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "can_ads",
+   "fieldtype": "Check",
+   "label": "Can Manage Ads",
+   "in_list_view": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "can_insights",
+   "fieldtype": "Check",
+   "label": "Can View Insights",
+   "in_list_view": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "can_settings",
+   "fieldtype": "Check",
+   "label": "Can Manage Settings"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-12 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Facebook",
+ "name": "Facebook Team Role",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
