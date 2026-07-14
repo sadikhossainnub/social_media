@@ -25,6 +25,7 @@
   "token_expiry",
   "refresh_token_button",
   "messenger_section",
+  "webhook_url",
   "messenger_verify_token",
   "enable_lead_ads",
   "enable_auto_post",
@@ -164,6 +165,13 @@
    "fieldname": "messenger_section",
    "fieldtype": "Section Break",
    "label": "Messenger Settings"
+  },
+  {
+   "fieldname": "webhook_url",
+   "fieldtype": "Data",
+   "label": "Webhook URL",
+   "read_only": 1,
+   "description": "Copy this URL to Facebook Developer Console > Webhooks > Callback URL"
   },
   {
    "fieldname": "messenger_verify_token",

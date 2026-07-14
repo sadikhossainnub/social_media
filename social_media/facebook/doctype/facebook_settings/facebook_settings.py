@@ -8,10 +8,18 @@ from datetime import datetime, timedelta
 
 
 class FacebookSettings(Document):
+    def onload(self):
+        """Set dynamic fields on load."""
+        site_url = frappe.utils.get_url()
+        self.webhook_url = f"{site_url}/api/method/social_media.facebook.api.webhook"
+        if not self.redirect_uri:
+            self.redirect_uri = f"{site_url}/api/method/social_media.facebook.auth.callback"
+
     def before_save(self):
         """Set the redirect URI before saving."""
+        site_url = frappe.utils.get_url()
+        self.webhook_url = f"{site_url}/api/method/social_media.facebook.api.webhook"
         if not self.redirect_uri:
-            site_url = frappe.utils.get_url()
             self.redirect_uri = f"{site_url}/api/method/social_media.facebook.auth.callback"
         
         # Generate messenger verify token if not set (10 characters max)

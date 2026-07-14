@@ -67,6 +67,18 @@ function status_change_callback(response) {
 
 frappe.ui.form.on('Facebook Settings', {
     refresh: function(frm) {
+        // Set dynamic fields
+        const site_url = frappe.utils.get_url();
+        const expected_webhook_url = `${site_url}/api/method/social_media.facebook.api.webhook`;
+        const expected_redirect_uri = `${site_url}/api/method/social_media.facebook.auth.callback`;
+        
+        if (frm.doc.webhook_url !== expected_webhook_url) {
+            frm.set_value('webhook_url', expected_webhook_url);
+        }
+        if (frm.doc.redirect_uri !== expected_redirect_uri) {
+            frm.set_value('redirect_uri', expected_redirect_uri);
+        }
+
         // Initialize Facebook SDK
         if (frm.doc.app_id) {
             initialize_facebook_sdk(frm.doc.app_id);
