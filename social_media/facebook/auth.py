@@ -80,18 +80,24 @@ def get_oauth_url():
 	site_url = frappe.utils.get_url()
 	redirect_uri = f"{site_url}/api/method/social_media.facebook.auth.callback"
 	
+	api_version = getattr(settings, "graph_api_version", None) or "v21.0"
+
 	# OAuth scopes
 	scopes = [
 		"pages_manage_posts",
 		"pages_read_engagement",
 		"leads_retrieval",
 		"pages_messaging",
+		"pages_show_list",
 		"public_profile"
 	]
+
+	if getattr(settings, "enable_ads_management", False):
+		scopes.extend(["ads_management", "ads_read"])
 	
 	# Build OAuth URL
 	oauth_url = (
-		f"https://www.facebook.com/v18.0/dialog/oauth"
+		f"https://www.facebook.com/{api_version}/dialog/oauth"
 		f"?client_id={settings.app_id}"
 		f"&redirect_uri={redirect_uri}"
 		f"&scope={','.join(scopes)}"

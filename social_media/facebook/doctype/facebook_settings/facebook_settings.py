@@ -16,13 +16,24 @@ class FacebookSettings(Document):
             self.redirect_uri = f"{site_url}/api/method/social_media.facebook.auth.callback"
 
     def before_save(self):
-        """Set the redirect URI before saving."""
+        """Set the redirect URI before saving and format graph_api_version."""
         site_url = frappe.utils.get_url()
         self.webhook_url = f"{site_url}/api/method/social_media.facebook.api.webhook"
         if not self.redirect_uri:
             self.redirect_uri = f"{site_url}/api/method/social_media.facebook.auth.callback"
         
-        # Generate messenger verify token if not set (10 characters max)
+        # Format Graph API Version string (e.g. '21' -> 'v21.0', '21.0' -> 'v21.0')
+        if self.graph_api_version:
+            v_str = str(self.graph_api_version).strip().lower()
+            if not v_str.startswith("v"):
+                v_str = f"v{v_str}"
+            if "." not in v_str:
+                v_str = f"{v_str}.0"
+            self.graph_api_version = v_str
+        else:
+            self.graph_api_version = "v21.0"
+
+        # Generate messenger verify token if not set
         if not self.messenger_verify_token:
             import secrets
             self.messenger_verify_token = secrets.token_hex(5)
@@ -33,14 +44,11 @@ class FacebookSettings(Document):
 
     def update_connection_status(self):
         """Update connection status based on current state"""
-        if self.is_connected and self.page_access_token:
-            frappe.db.set_value("Facebook Settings", self.name, {
-                "connection_status": "Connected"
-            })
+        if self.page_access_token or (self.is_connected and self.app_id):
+            frappe.db.set_value("Facebook Settings", self.name, "is_connected", 1, update_modified=False)
         else:
-            frappe.db.set_value("Facebook Settings", self.name, {
-                "connection_status": "Not Connected"
-            })
+            frappe.db.set_value("Facebook Settings", self.name, "is_connected", 0, update_modified=False)
+
 
 
 @frappe.whitelist()
@@ -173,7 +181,9 @@ def set_manual_token(page_access_token, page_id=None, page_name=None):
 
 	# ── Validate the token against Facebook Graph API ──────────────────────────
 	try:
-		verify_url = "https://graph.facebook.com/v18.0/me"
+		settings_doc = frappe.get_doc("Facebook Settings")
+		api_ver = getattr(settings_doc, "graph_api_version", None) or "v21.0"
+		verify_url = f"https://graph.facebook.com/{api_ver}/me"
 		resp = requests.get(
 			verify_url,
 			params={"access_token": page_access_token, "fields": "id,name"},

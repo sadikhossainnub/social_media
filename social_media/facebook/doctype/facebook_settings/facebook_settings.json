@@ -39,6 +39,10 @@
   "settings_section",
   "auto_post_on_invoice",
   "auto_post_on_order",
+  "ads_section",
+  "enable_ads_management",
+  "default_ad_account",
+  "auto_sync_ads",
   "team_roles_section",
   "team_roles"
  ],
@@ -243,6 +247,33 @@
    "fieldtype": "Check",
    "label": "Auto-Post on Sales Order Submit",
    "default": 1
+  },
+  {
+   "fieldname": "ads_section",
+   "fieldtype": "Section Break",
+   "label": "Ads Management",
+   "description": "Requires Facebook Marketing API access (ads_management + ads_read permissions)"
+  },
+  {
+   "fieldname": "enable_ads_management",
+   "fieldtype": "Check",
+   "label": "Enable Ads Management",
+   "description": "Enable to sync campaigns, ad sets, and ads from Facebook Marketing API"
+  },
+  {
+   "fieldname": "default_ad_account",
+   "fieldtype": "Link",
+   "label": "Default Ad Account",
+   "options": "Facebook Ad Account",
+   "depends_on": "enable_ads_management",
+   "description": "Default ad account for new campaigns"
+  },
+  {
+   "fieldname": "auto_sync_ads",
+   "fieldtype": "Check",
+   "label": "Auto Sync Ads (Every 6 Hours)",
+   "depends_on": "enable_ads_management",
+   "description": "Automatically sync campaigns and insights every 6 hours via scheduler"
   },
   {
    "fieldname": "team_roles_section",

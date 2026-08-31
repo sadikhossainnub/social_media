@@ -1,0 +1,311 @@
+{
+ "actions": [
+  {
+   "label": "Sync Insights",
+   "action": "frappe.call('social_media.facebook.ads.sync_ad_insights', {ad_id: frm.doc.name})",
+   "action_type": "Server Action"
+  },
+  {
+   "label": "Pause",
+   "action": "frappe.call('social_media.facebook.ads.pause_ad', {ad_id: frm.doc.ad_id}).then(() => frm.reload_doc())",
+   "action_type": "Server Action"
+  },
+  {
+   "label": "Activate",
+   "action": "frappe.call('social_media.facebook.ads.activate_ad', {ad_id: frm.doc.ad_id}).then(() => frm.reload_doc())",
+   "action_type": "Server Action"
+  }
+ ],
+ "creation": "2026-08-27 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "basic_section",
+  "ad_id",
+  "ad_name",
+  "ad_set",
+  "campaign",
+  "ad_account",
+  "status",
+  "col_break1",
+  "creative_type",
+  "call_to_action",
+  "creative_section",
+  "headline",
+  "body_text",
+  "destination_url",
+  "col_break2",
+  "image_url",
+  "image_preview",
+  "video_url",
+  "preview_url",
+  "performance_section",
+  "impressions",
+  "col_break3",
+  "clicks",
+  "col_break4",
+  "spend",
+  "col_break5",
+  "reach",
+  "col_break6",
+  "cpc",
+  "col_break7",
+  "ctr",
+  "col_break8",
+  "conversions",
+  "col_break9",
+  "cost_per_conversion",
+  "meta_section",
+  "last_synced",
+  "raw_insights"
+ ],
+ "fields": [
+  {
+   "fieldname": "basic_section",
+   "fieldtype": "Section Break",
+   "label": "Basic Info"
+  },
+  {
+   "fieldname": "ad_id",
+   "fieldtype": "Data",
+   "label": "Ad ID (Facebook)",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "ad_name",
+   "fieldtype": "Data",
+   "label": "Ad Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ad_set",
+   "fieldtype": "Link",
+   "label": "Ad Set",
+   "options": "Facebook Ad Set",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "campaign",
+   "fieldtype": "Link",
+   "label": "Campaign",
+   "options": "Facebook Ad Campaign"
+  },
+  {
+   "fieldname": "ad_account",
+   "fieldtype": "Link",
+   "label": "Ad Account",
+   "options": "Facebook Ad Account"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nPaused\nDeleted\nArchived",
+   "default": "Active",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "col_break1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "creative_type",
+   "fieldtype": "Select",
+   "label": "Creative Type",
+   "options": "Image\nVideo\nCarousel\nCollection\nSlideshow",
+   "default": "Image"
+  },
+  {
+   "fieldname": "call_to_action",
+   "fieldtype": "Select",
+   "label": "Call To Action",
+   "options": "\nLEARN_MORE\nSHOP_NOW\nSIGN_UP\nCONTACT_US\nGET_QUOTE\nBOOK_NOW\nDOWNLOAD\nWATCH_MORE\nAPPLY_NOW\nSUBSCRIBE\nGET_OFFER"
+  },
+  {
+   "fieldname": "creative_section",
+   "fieldtype": "Section Break",
+   "label": "Ad Creative"
+  },
+  {
+   "fieldname": "headline",
+   "fieldtype": "Data",
+   "label": "Headline",
+   "description": "Ad headline (max 40 characters for best results)"
+  },
+  {
+   "fieldname": "body_text",
+   "fieldtype": "Text",
+   "label": "Body Text",
+   "description": "Main ad text (max 125 characters for best results)"
+  },
+  {
+   "fieldname": "destination_url",
+   "fieldtype": "Data",
+   "label": "Destination URL",
+   "description": "Landing page URL"
+  },
+  {
+   "fieldname": "col_break2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "image_url",
+   "fieldtype": "Data",
+   "label": "Image URL",
+   "description": "Ad image URL (recommended: 1200x628 px)"
+  },
+  {
+   "fieldname": "image_preview",
+   "fieldtype": "HTML",
+   "label": "Image Preview",
+   "options": "<div id='ad-image-preview'></div><script>frappe.ui.form.on('Facebook Ad', {image_url: function(frm){var url = frm.doc.image_url; if(url){frm.fields_dict.image_preview.$wrapper.html('<img src=\"'+url+'\" style=\"max-width:300px;border-radius:8px;margin-top:8px;\"/>');}}})</script>"
+  },
+  {
+   "fieldname": "video_url",
+   "fieldtype": "Data",
+   "label": "Video URL",
+   "description": "Ad video URL (for video ads)"
+  },
+  {
+   "fieldname": "preview_url",
+   "fieldtype": "Data",
+   "label": "Facebook Preview URL",
+   "read_only": 1,
+   "description": "Facebook-generated ad preview link"
+  },
+  {
+   "fieldname": "performance_section",
+   "fieldtype": "Section Break",
+   "label": "Performance (Last 30 Days)"
+  },
+  {
+   "fieldname": "impressions",
+   "fieldtype": "Int",
+   "label": "Impressions",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "col_break3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "clicks",
+   "fieldtype": "Int",
+   "label": "Clicks",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "spend",
+   "fieldtype": "Currency",
+   "label": "Spend",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "col_break5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reach",
+   "fieldtype": "Int",
+   "label": "Reach",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cpc",
+   "fieldtype": "Currency",
+   "label": "CPC",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ctr",
+   "fieldtype": "Percent",
+   "label": "CTR (%)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "conversions",
+   "fieldtype": "Int",
+   "label": "Conversions",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break9",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cost_per_conversion",
+   "fieldtype": "Currency",
+   "label": "Cost / Conversion",
+   "read_only": 1
+  },
+  {
+   "fieldname": "meta_section",
+   "fieldtype": "Section Break",
+   "label": "Sync Info"
+  },
+  {
+   "fieldname": "last_synced",
+   "fieldtype": "Datetime",
+   "label": "Last Synced",
+   "read_only": 1
+  },
+  {
+   "fieldname": "raw_insights",
+   "fieldtype": "JSON",
+   "label": "Raw Insights Data"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-27 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Facebook",
+ "name": "Facebook Ad",
+ "naming_rule": "By fieldname",
+ "autoname": "field:ad_id",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Sales Manager"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

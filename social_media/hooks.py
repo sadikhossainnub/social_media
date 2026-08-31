@@ -175,17 +175,22 @@ scheduler_events = {
 	"daily": [
 		"social_media.whatsapp.doctype.whatsapp_notification.whatsapp_notification.trigger_daily_whatsapp_notifications",
 		"social_media.facebook.doctype.facebook_auto_post_publisher.facebook_auto_post_publisher.analyze_post_engagement",
-		"social_media.facebook.insights.pull_daily_insights"
+		"social_media.facebook.insights.pull_daily_insights",
+		"social_media.facebook.ads.sync_campaign_insights_daily",  # Sync campaign insights daily
 	],
 	"cron": {
 		"*/5 * * * *": [
 			"social_media.facebook.doctype.facebook_auto_post_publisher.facebook_auto_post_publisher.process_scheduled_posts"
+		],
+		"0 */6 * * *": [
+			"social_media.facebook.ads.sync_all_ad_accounts",  # Sync ad accounts + campaigns every 6 hours
 		],
 		"* * * * *": [
 			"social_media.whatsapp.doctype.scheduled_whatsapp_message.scheduled_whatsapp_message.process_scheduled_whatsapp_messages"
 		]
 	}
 }
+
 
 # Testing
 # -------

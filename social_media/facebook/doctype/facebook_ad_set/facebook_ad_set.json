@@ -1,41 +1,42 @@
 {
  "actions": [
   {
-   "label": "Pause Campaign",
-   "action": "frappe.call('social_media.facebook.ads.pause_campaign', {campaign_id: frm.doc.campaign_id}).then(r => { if(r.message && r.message.success) { frappe.msgprint('Campaign paused'); frm.reload_doc(); } else { frappe.msgprint({title:'Error', message: r.message.error, indicator:'red'}); } })",
-   "action_type": "Server Action"
-  },
-  {
-   "label": "Activate Campaign",
-   "action": "frappe.call('social_media.facebook.ads.activate_campaign', {campaign_id: frm.doc.campaign_id}).then(r => { if(r.message && r.message.success) { frappe.msgprint('Campaign activated'); frm.reload_doc(); } else { frappe.msgprint({title:'Error', message: r.message.error, indicator:'red'}); } })",
-   "action_type": "Server Action"
-  },
-  {
    "label": "Sync Insights",
-   "action": "frappe.call('social_media.facebook.ads.sync_campaign_insights', {campaign_id: frm.doc.campaign_id}).then(r => { frappe.msgprint('Insights synced'); frm.reload_doc(); })",
+   "action": "frappe.call('social_media.facebook.ads.sync_ad_set_insights', {adset_id: frm.doc.name})",
+   "action_type": "Server Action"
+  },
+  {
+   "label": "Pause",
+   "action": "frappe.call('social_media.facebook.ads.pause_ad_set', {adset_id: frm.doc.adset_id}).then(() => frm.reload_doc())",
+   "action_type": "Server Action"
+  },
+  {
+   "label": "Activate",
+   "action": "frappe.call('social_media.facebook.ads.activate_ad_set', {adset_id: frm.doc.adset_id}).then(() => frm.reload_doc())",
    "action_type": "Server Action"
   }
  ],
- "creation": "2026-07-12 00:00:00.000000",
+ "creation": "2026-08-27 00:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "basic_section",
-  "campaign_id",
-  "campaign_name",
+  "adset_id",
+  "adset_name",
+  "campaign",
   "ad_account",
-  "page",
   "status",
   "col_break1",
-  "objective",
-  "bid_strategy",
-  "buying_type",
-  "special_ad_categories",
+  "billing_event",
+  "optimization_goal",
   "budget_section",
   "daily_budget",
   "lifetime_budget",
-  "start_date",
-  "end_date",
+  "start_time",
+  "end_time",
+  "targeting_section",
+  "targeting_summary",
+  "targeting_json",
   "performance_section",
   "impressions",
   "col_break2",
@@ -47,10 +48,8 @@
   "col_break5",
   "cpc",
   "col_break6",
-  "cpm",
-  "col_break7",
   "ctr",
-  "col_break8",
+  "col_break7",
   "frequency",
   "meta_section",
   "last_synced",
@@ -63,18 +62,26 @@
    "label": "Basic Info"
   },
   {
-   "fieldname": "campaign_id",
+   "fieldname": "adset_id",
    "fieldtype": "Data",
-   "label": "Campaign ID (Facebook)",
+   "label": "Ad Set ID (Facebook)",
    "reqd": 1,
    "unique": 1,
    "in_list_view": 1,
    "read_only": 1
   },
   {
-   "fieldname": "campaign_name",
+   "fieldname": "adset_name",
    "fieldtype": "Data",
-   "label": "Campaign Name",
+   "label": "Ad Set Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "campaign",
+   "fieldtype": "Link",
+   "label": "Campaign",
+   "options": "Facebook Ad Campaign",
    "reqd": 1,
    "in_list_view": 1
   },
@@ -83,14 +90,7 @@
    "fieldtype": "Link",
    "label": "Ad Account",
    "options": "Facebook Ad Account",
-   "reqd": 1,
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "page",
-   "fieldtype": "Link",
-   "label": "Facebook Page",
-   "options": "Facebook Page"
+   "reqd": 1
   },
   {
    "fieldname": "status",
@@ -105,32 +105,16 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "objective",
+   "fieldname": "billing_event",
    "fieldtype": "Select",
-   "label": "Objective",
-   "options": "\nAWARENESS\nTRAFFIC\nENGAGEMENT\nLEADS\nAPP_PROMOTION\nSALES\nREACH\nBRAND_AWARENESS\nLINK_CLICKS\nCONVERSIONS\nVIDEO_VIEWS\nMESSAGES",
-   "description": "Campaign objective"
+   "label": "Billing Event",
+   "options": "IMPRESSIONS\nLINK_CLICKS\nAPP_INSTALLS\nPOST_ENGAGEMENT\nVIDEO_VIEWS\nTHRURPLAY"
   },
   {
-   "fieldname": "bid_strategy",
+   "fieldname": "optimization_goal",
    "fieldtype": "Select",
-   "label": "Bid Strategy",
-   "options": "\nLOWEST_COST_WITHOUT_CAP\nLOWEST_COST_WITH_BID_CAP\nCOST_CAP\nMINIMUM_ROAS"
-  },
-  {
-   "fieldname": "buying_type",
-   "fieldtype": "Select",
-   "label": "Buying Type",
-   "options": "AUCTION\nRESERVATION",
-   "default": "AUCTION"
-  },
-  {
-   "fieldname": "special_ad_categories",
-   "fieldtype": "Select",
-   "label": "Special Ad Category",
-   "options": "NONE\nEMPLOYMENT\nHOUSING\nCREDIT\nISSUES_ELECTIONS_POLITICS",
-   "default": "NONE",
-   "description": "Required for housing, employment, credit, or political ads"
+   "label": "Optimization Goal",
+   "options": "REACH\nLINK_CLICKS\nCONVERSIONS\nLEAD_GENERATION\nBRAND_AWARENESS\nVIDEO_VIEWS\nPOST_ENGAGEMENT\nAPP_INSTALLS"
   },
   {
    "fieldname": "budget_section",
@@ -140,8 +124,7 @@
   {
    "fieldname": "daily_budget",
    "fieldtype": "Currency",
-   "label": "Daily Budget",
-   "description": "In account currency (cents/paisa for some currencies)"
+   "label": "Daily Budget"
   },
   {
    "fieldname": "lifetime_budget",
@@ -149,19 +132,36 @@
    "label": "Lifetime Budget"
   },
   {
-   "fieldname": "start_date",
-   "fieldtype": "Date",
-   "label": "Start Date"
+   "fieldname": "start_time",
+   "fieldtype": "Datetime",
+   "label": "Start Time"
   },
   {
-   "fieldname": "end_date",
-   "fieldtype": "Date",
-   "label": "End Date"
+   "fieldname": "end_time",
+   "fieldtype": "Datetime",
+   "label": "End Time"
+  },
+  {
+   "fieldname": "targeting_section",
+   "fieldtype": "Section Break",
+   "label": "Audience Targeting"
+  },
+  {
+   "fieldname": "targeting_summary",
+   "fieldtype": "Small Text",
+   "label": "Targeting Summary",
+   "description": "Human-readable summary of the targeting (e.g. Age 18-35, Dhaka, Interests: Fashion)"
+  },
+  {
+   "fieldname": "targeting_json",
+   "fieldtype": "JSON",
+   "label": "Targeting Spec (JSON)",
+   "description": "Full Facebook targeting JSON — advanced users only"
   },
   {
    "fieldname": "performance_section",
    "fieldtype": "Section Break",
-   "label": "Performance Metrics"
+   "label": "Performance (Last 30 Days)"
   },
   {
    "fieldname": "impressions",
@@ -208,21 +208,11 @@
   {
    "fieldname": "cpc",
    "fieldtype": "Currency",
-   "label": "CPC",
+   "label": "CPC (Cost/Click)",
    "read_only": 1
   },
   {
    "fieldname": "col_break6",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "cpm",
-   "fieldtype": "Currency",
-   "label": "CPM",
-   "read_only": 1
-  },
-  {
-   "fieldname": "col_break7",
    "fieldtype": "Column Break"
   },
   {
@@ -232,7 +222,7 @@
    "read_only": 1
   },
   {
-   "fieldname": "col_break8",
+   "fieldname": "col_break7",
    "fieldtype": "Column Break"
   },
   {
@@ -255,22 +245,22 @@
   {
    "fieldname": "raw_insights",
    "fieldtype": "JSON",
-   "label": "Raw Insights"
+   "label": "Raw Insights Data"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [
   {
-   "link_doctype": "Facebook Ad Set",
-   "link_fieldname": "campaign"
+   "link_doctype": "Facebook Ad",
+   "link_fieldname": "ad_set"
   }
  ],
  "modified": "2026-08-27 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Facebook",
- "name": "Facebook Ad Campaign",
+ "name": "Facebook Ad Set",
  "naming_rule": "By fieldname",
- "autoname": "field:campaign_id",
+ "autoname": "field:adset_id",
  "owner": "Administrator",
  "permissions": [
   {

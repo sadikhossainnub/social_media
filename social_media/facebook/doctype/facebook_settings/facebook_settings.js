@@ -1,5 +1,4 @@
-// Initialize Facebook SDK
-function initialize_facebook_sdk(app_id) {
+function initialize_facebook_sdk(app_id, api_version) {
     if (!app_id) return;
     
     // Only load SDK once
@@ -7,12 +6,13 @@ function initialize_facebook_sdk(app_id) {
         return;
     }
     
+    var version = api_version || 'v21.0';
     window.fbAsyncInit = function() {
         FB.init({
             appId: app_id,
             cookie: true,
             xfbml: true,
-            version: 'v18.0'
+            version: version
         });
         
         // Check login status after SDK initialization

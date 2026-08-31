@@ -536,6 +536,128 @@ class FacebookGraphClient:
 		"""Update campaign status (ACTIVE, PAUSED)."""
 		return self.post(f"/{campaign_id}", data={"status": status})
 
+	def create_campaign(self, ad_account_id, payload):
+		"""
+		Create a new campaign under an ad account.
+
+		Args:
+			ad_account_id: Ad Account ID (without act_ prefix)
+			payload: dict with name, objective, status, bid_strategy, etc.
+
+		Returns:
+			dict: {"id": "<campaign_id>"} on success
+		"""
+		act_id = f"act_{ad_account_id}"
+		return self.post(f"/{act_id}/campaigns", data=payload)
+
+	def get_ad_sets(self, campaign_id, limit=100):
+		"""Get ad sets for a campaign."""
+		return self.get(
+			f"/{campaign_id}/adsets",
+			params={
+				"fields": "id,name,status,daily_budget,lifetime_budget,"
+						  "billing_event,optimization_goal,targeting,start_time,end_time",
+				"limit": limit
+			}
+		)
+
+	def create_ad_set(self, ad_account_id, payload):
+		"""
+		Create a new ad set under an ad account.
+
+		Args:
+			ad_account_id: Ad Account ID (without act_ prefix)
+			payload: dict with name, campaign_id, optimization_goal,
+			         billing_event, targeting, budget, status, etc.
+
+		Returns:
+			dict: {"id": "<adset_id>"} on success
+		"""
+		act_id = f"act_{ad_account_id}"
+		return self.post(f"/{act_id}/adsets", data=payload)
+
+	def update_ad_set_status(self, adset_id, status):
+		"""Update ad set status (ACTIVE, PAUSED)."""
+		return self.post(f"/{adset_id}", data={"status": status})
+
+	def get_ads(self, adset_id, limit=100):
+		"""Get ads for an ad set."""
+		return self.get(
+			f"/{adset_id}/ads",
+			params={
+				"fields": "id,name,status,creative{id,title,body,object_url,image_url,call_to_action_type}",
+				"limit": limit
+			}
+		)
+
+	def create_ad_creative(self, ad_account_id, payload):
+		"""
+		Create an ad creative.
+
+		Args:
+			ad_account_id: Ad Account ID (without act_ prefix)
+			payload: dict with name, object_story_spec, etc.
+
+		Returns:
+			dict: {"id": "<creative_id>"} on success
+		"""
+		act_id = f"act_{ad_account_id}"
+		return self.post(f"/{act_id}/adcreatives", data=payload)
+
+	def create_ad(self, ad_account_id, payload):
+		"""
+		Create a new ad.
+
+		Args:
+			ad_account_id: Ad Account ID (without act_ prefix)
+			payload: dict with name, adset_id, creative, status, etc.
+
+		Returns:
+			dict: {"id": "<ad_id>"} on success
+		"""
+		act_id = f"act_{ad_account_id}"
+		return self.post(f"/{act_id}/ads", data=payload)
+
+	def update_ad_status(self, ad_id, status):
+		"""Update ad status (ACTIVE, PAUSED)."""
+		return self.post(f"/{ad_id}", data={"status": status})
+
+	def get_ad_previews(self, ad_id, ad_format="DESKTOP_FEED_STANDARD"):
+		"""
+		Get preview URL for an ad.
+
+		Args:
+			ad_id: Facebook Ad ID
+			ad_format: Preview format
+
+		Returns:
+			dict with preview iframes
+		"""
+		return self.get(
+			f"/{ad_id}/previews",
+			params={"ad_format": ad_format}
+		)
+
+	def get_account_insights(self, ad_account_id, date_preset="last_30d", fields=None):
+		"""
+		Get account-level insights.
+
+		Args:
+			ad_account_id: Ad Account ID (without act_ prefix)
+			date_preset: Facebook date preset string
+			fields: Comma-separated insight fields
+
+		Returns:
+			dict with insights data
+		"""
+		act_id = f"act_{ad_account_id}"
+		if not fields:
+			fields = "impressions,clicks,spend,reach,cpc,cpm,ctr,frequency"
+		return self.get(
+			f"/{act_id}/insights",
+			params={"fields": fields, "date_preset": date_preset}
+		)
+
 	# ── Webhook Signature Verification ────────────────────────────────
 
 	@staticmethod

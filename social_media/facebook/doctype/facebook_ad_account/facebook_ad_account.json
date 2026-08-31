@@ -1,5 +1,11 @@
 {
- "actions": [],
+ "actions": [
+  {
+   "label": "Sync Ad Accounts",
+   "action": "frappe.call('social_media.facebook.ads.sync_ad_accounts').then(r => { frappe.msgprint(r.message.message || 'Done'); frappe.set_route('List','Facebook Ad Account'); })",
+   "action_type": "Server Action"
+  }
+ ],
  "creation": "2026-07-12 00:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -7,10 +13,17 @@
   "account_id",
   "account_name",
   "status",
+  "col_break1",
   "currency",
   "timezone",
   "page",
-  "access_token"
+  "access_token",
+  "spend_section",
+  "spend_limit",
+  "amount_spent",
+  "balance",
+  "meta_section",
+  "last_synced"
  ],
  "fields": [
   {
@@ -36,6 +49,10 @@
    "in_list_view": 1
   },
   {
+   "fieldname": "col_break1",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "currency",
    "fieldtype": "Data",
    "label": "Currency"
@@ -54,12 +71,53 @@
   {
    "fieldname": "access_token",
    "fieldtype": "Password",
-   "label": "Ad Account Access Token"
+   "label": "Ad Account Access Token",
+   "description": "Marketing API token with ads_management permission"
+  },
+  {
+   "fieldname": "spend_section",
+   "fieldtype": "Section Break",
+   "label": "Spend Info"
+  },
+  {
+   "fieldname": "spend_limit",
+   "fieldtype": "Currency",
+   "label": "Account Spend Limit",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount_spent",
+   "fieldtype": "Currency",
+   "label": "Amount Spent (Total)",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "balance",
+   "fieldtype": "Currency",
+   "label": "Balance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "meta_section",
+   "fieldtype": "Section Break",
+   "label": "Sync Info"
+  },
+  {
+   "fieldname": "last_synced",
+   "fieldtype": "Datetime",
+   "label": "Last Synced",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2026-07-12 00:00:00.000000",
+ "links": [
+  {
+   "link_doctype": "Facebook Ad Campaign",
+   "link_fieldname": "ad_account"
+  }
+ ],
+ "modified": "2026-08-27 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Facebook",
  "name": "Facebook Ad Account",

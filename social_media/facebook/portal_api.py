@@ -662,3 +662,188 @@ def get_portal_settings():
 	settings_dict.pop("ai_api_key", None)
 	
 	return api_response(success=True, data=settings_dict)
+
+
+# ── Ads Management Portal APIs ────────────────────────────────────────────────
+
+@frappe.whitelist()
+def get_ads_dashboard(ad_account_id=None):
+	"""
+	Get aggregated ads dashboard data for the portal.
+	Returns summary metrics + campaign list.
+	"""
+	if not check_portal_permission(permission_type="can_view"):
+		return api_response(success=False, message="Permission denied")
+
+	from social_media.facebook.ads import get_ads_dashboard_data
+	result = get_ads_dashboard_data(ad_account_id=ad_account_id)
+	return api_response(success=result.get("success", False), data=result)
+
+
+@frappe.whitelist()
+def portal_sync_ad_accounts():
+	"""Sync Facebook Ad Accounts from the portal."""
+	if not check_portal_permission(permission_type="can_post"):
+		return api_response(success=False, message="Permission denied")
+
+	from social_media.facebook.ads import sync_ad_accounts
+	result = sync_ad_accounts()
+	return api_response(success=result.get("success", False), message=result.get("message", ""), data=result)
+
+
+@frappe.whitelist()
+def portal_sync_campaigns(ad_account_id):
+	"""Sync campaigns for a given Ad Account from the portal."""
+	if not check_portal_permission(permission_type="can_post"):
+		return api_response(success=False, message="Permission denied")
+
+	from social_media.facebook.ads import sync_campaigns
+	result = sync_campaigns(ad_account_id=ad_account_id)
+	return api_response(success=result.get("success", False), message=result.get("message", ""), data=result)
+
+
+@frappe.whitelist()
+def portal_create_campaign(ad_account_id, campaign_name, objective,
+							daily_budget=None, lifetime_budget=None,
+							start_date=None, end_date=None,
+							bid_strategy="LOWEST_COST_WITHOUT_CAP",
+							special_ad_categories=None):
+	"""Create a new campaign from the portal."""
+	if not check_portal_permission(permission_type="can_post"):
+		return api_response(success=False, message="Permission denied")
+
+	from social_media.facebook.ads import create_campaign
+	result = create_campaign(
+		ad_account_id=ad_account_id,
+		campaign_name=campaign_name,
+		objective=objective,
+		daily_budget=daily_budget,
+		lifetime_budget=lifetime_budget,
+		start_date=start_date,
+		end_date=end_date,
+		bid_strategy=bid_strategy,
+		special_ad_categories=special_ad_categories,
+	)
+	return api_response(
+		success=result.get("success", False),
+		message=result.get("message", result.get("error", "")),
+		data=result
+	)
+
+
+@frappe.whitelist()
+def portal_pause_campaign(campaign_id):
+	"""Pause a campaign from the portal."""
+	if not check_portal_permission(permission_type="can_post"):
+		return api_response(success=False, message="Permission denied")
+
+	from social_media.facebook.ads import pause_campaign
+	result = pause_campaign(campaign_id=campaign_id)
+	return api_response(success=result.get("success", False), message=result.get("message", result.get("error", "")))
+
+
+@frappe.whitelist()
+def portal_activate_campaign(campaign_id):
+	"""Activate a campaign from the portal."""
+	if not check_portal_permission(permission_type="can_post"):
+		return api_response(success=False, message="Permission denied")
+
+	from social_media.facebook.ads import activate_campaign
+	result = activate_campaign(campaign_id=campaign_id)
+	return api_response(success=result.get("success", False), message=result.get("message", result.get("error", "")))
+
+
+@frappe.whitelist()
+def portal_sync_campaign_insights(campaign_id, date_preset="last_30d"):
+	"""Sync campaign insights from the portal."""
+	if not check_portal_permission(permission_type="can_view"):
+		return api_response(success=False, message="Permission denied")
+
+	from social_media.facebook.ads import sync_campaign_insights
+	result = sync_campaign_insights(campaign_id=campaign_id, date_preset=date_preset)
+	return api_response(success=result.get("success", False), message=result.get("message", result.get("error", "")))
+
+
+@frappe.whitelist()
+def portal_get_ad_sets(campaign_id):
+	"""Get ad sets for a campaign from the portal."""
+	if not check_portal_permission(permission_type="can_view"):
+		return api_response(success=False, message="Permission denied")
+
+	adsets = frappe.get_all(
+		"Facebook Ad Set",
+		filters={"campaign": campaign_id},
+		fields=["adset_id", "adset_name", "status", "optimization_goal",
+				"billing_event", "daily_budget", "lifetime_budget",
+				"targeting_summary", "impressions", "clicks", "spend",
+				"cpc", "ctr", "last_synced"]
+	)
+	return api_response(success=True, data=adsets)
+
+
+@frappe.whitelist()
+def portal_create_ad_set(campaign_id, adset_name, optimization_goal,
+						  billing_event, daily_budget=None, lifetime_budget=None,
+						  targeting=None):
+	"""Create a new ad set from the portal."""
+	if not check_portal_permission(permission_type="can_post"):
+		return api_response(success=False, message="Permission denied")
+
+	from social_media.facebook.ads import create_ad_set
+	result = create_ad_set(
+		campaign_id=campaign_id,
+		adset_name=adset_name,
+		optimization_goal=optimization_goal,
+		billing_event=billing_event,
+		daily_budget=daily_budget,
+		lifetime_budget=lifetime_budget,
+		targeting=targeting,
+	)
+	return api_response(
+		success=result.get("success", False),
+		message=result.get("message", result.get("error", "")),
+		data=result
+	)
+
+
+@frappe.whitelist()
+def portal_get_ads(adset_id):
+	"""Get ads for an ad set from the portal."""
+	if not check_portal_permission(permission_type="can_view"):
+		return api_response(success=False, message="Permission denied")
+
+	ads = frappe.get_all(
+		"Facebook Ad",
+		filters={"ad_set": adset_id},
+		fields=["ad_id", "ad_name", "status", "creative_type",
+				"headline", "body_text", "image_url", "call_to_action",
+				"impressions", "clicks", "spend", "cpc", "ctr",
+				"conversions", "cost_per_conversion", "last_synced"]
+	)
+	return api_response(success=True, data=ads)
+
+
+@frappe.whitelist()
+def portal_create_ad(adset_id, ad_name, headline, body_text, destination_url,
+					  image_url=None, call_to_action="LEARN_MORE", creative_type="Image"):
+	"""Create a new ad from the portal."""
+	if not check_portal_permission(permission_type="can_post"):
+		return api_response(success=False, message="Permission denied")
+
+	from social_media.facebook.ads import create_ad
+	result = create_ad(
+		adset_id=adset_id,
+		ad_name=ad_name,
+		headline=headline,
+		body_text=body_text,
+		destination_url=destination_url,
+		image_url=image_url,
+		call_to_action=call_to_action,
+		creative_type=creative_type,
+	)
+	return api_response(
+		success=result.get("success", False),
+		message=result.get("message", result.get("error", "")),
+		data=result
+	)
+
