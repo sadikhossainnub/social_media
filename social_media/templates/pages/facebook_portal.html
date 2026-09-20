@@ -76,19 +76,14 @@
 	</style>
 </head>
 <body class="h-full overflow-hidden">
+{% raw %}
 
-<!-- Inject server-side Jinja data BEFORE {% raw %} block -->
 <script>
-window.fbPortalData = {
-  userFullName: {{ user_fullname | tojson }},
-  userEmail: {{ user_email | tojson }},
-  csrfToken: {{ csrf_token | tojson }},
-  pages: {{ allowed_pages | tojson }}
-};
+window.fbPortalData = window.fbPortalData || {};
 </script>
 
-{% raw %}
 <div id="app" v-cloak class="h-full flex flex-col md:flex-row">
+
 	<!-- Sidebar -->
 	<aside class="w-full md:w-64 glass-panel flex flex-col border-r border-slate-800/80 shrink-0">
 		<div class="p-6 flex items-center gap-3 border-b border-slate-800/60">
@@ -717,9 +712,10 @@ window.fbPortalData = {
 		</div>
 	</div>
 </div>
-{% endraw %}
+</div>
 
 <script>
+
 	const { createApp, ref, onMounted, computed, nextTick, watch } = Vue;
 
 	createApp({
@@ -756,7 +752,14 @@ window.fbPortalData = {
 						can_settings: 1
 					};
 				}
-				return permissions.value[selectedPageId.value] || {};
+				return permissions.value[selectedPageId.value] || {
+					can_post: 1,
+					can_comment: 1,
+					can_message: 1,
+					can_ads: 1,
+					can_insights: 1,
+					can_settings: 1
+				};
 			});
 
 			const loading = ref(false);
@@ -816,8 +819,11 @@ window.fbPortalData = {
 			const commentFilter = ref('all'); // all | unreplied
 			const commentReplyText = ref({});
 
-			// Calendar
-			const currentMonthName = ref('July 2026');
+			// Calendar — dynamic month tracking
+			const currentMonth = ref(new Date());
+			const currentMonthName = computed(() => {
+				return currentMonth.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+			});
 			const calendarDays = ref([]);
 			const showNewPostModal = ref(false);
 			const newPost = ref({
@@ -859,7 +865,7 @@ window.fbPortalData = {
 			// Alerts/Push notifications stack
 			const alerts = ref([]);
 
-			// Fetch helper
+			// Fetch helper — Frappe wraps response in res.message
 			const callApi = async (method, args = {}) => {
 				loading.value = true;
 				try {
@@ -872,14 +878,17 @@ window.fbPortalData = {
 						body: JSON.stringify(args)
 					});
 					const res = await response.json();
-					if (res.message && res.message.success) {
-						return res.message;
+					// Frappe API wraps return value inside res.message
+					const payload = res.message;
+					if (payload && payload.success === true) {
+						return payload;
 					} else {
-						console.error(res.message?.message || 'API error');
+						const errMsg = payload?.message || res.exception || 'API error';
+						console.warn(`[callApi] ${method} failed:`, errMsg);
 						return null;
 					}
 				} catch (e) {
-					console.error(e);
+					console.error(`[callApi] ${method} exception:`, e);
 					return null;
 				} finally {
 					loading.value = false;
@@ -930,23 +939,53 @@ window.fbPortalData = {
 			};
 
 			const loadCalendar = async () => {
-				const startStr = '2026-07-01';
-				const endStr = '2026-07-31';
-				const res = await callApi('get_calendar_entries', { page_id: selectedPageId.value, start_date: startStr, end_date: endStr });
-				
-				// Generate calendar grid for July 2026
+				const d = currentMonth.value;
+				const year = d.getFullYear();
+				const month = d.getMonth(); // 0-indexed
+				const firstDay = new Date(year, month, 1);
+				const daysInMonth = new Date(year, month + 1, 0).getDate();
+				const pad = (n) => n.toString().padStart(2, '0');
+				const startStr = `${year}-${pad(month + 1)}-01`;
+				const endStr = `${year}-${pad(month + 1)}-${pad(daysInMonth)}`;
+				const res = await callApi('get_calendar_entries', {
+					page_id: selectedPageId.value,
+					start_date: startStr,
+					end_date: endStr
+				});
+
+				// Build calendar grid with empty leading days
 				const days = [];
-				for (let i = 1; i <= 31; i++) {
-					const dateStr = `2026-07-${i.toString().padStart(2, '0')}`;
+				const leadingBlanks = firstDay.getDay(); // 0=Sun
+				for (let b = 0; b < leadingBlanks; b++) {
+					days.push({ blank: true });
+				}
+				for (let i = 1; i <= daysInMonth; i++) {
+					const dateStr = `${year}-${pad(month + 1)}-${pad(i)}`;
 					const events = res?.data?.filter(e => e.scheduled_date === dateStr) || [];
+					const today = new Date();
 					days.push({
 						dayNum: i,
 						dateStr,
+						isToday: today.getFullYear() === year && today.getMonth() === month && today.getDate() === i,
 						isCurrentMonth: true,
 						events
 					});
 				}
 				calendarDays.value = days;
+			};
+
+			const prevMonth = () => {
+				const d = new Date(currentMonth.value);
+				d.setMonth(d.getMonth() - 1);
+				currentMonth.value = d;
+				loadCalendar();
+			};
+
+			const nextMonth = () => {
+				const d = new Date(currentMonth.value);
+				d.setMonth(d.getMonth() + 1);
+				currentMonth.value = d;
+				loadCalendar();
 			};
 
 			const loadCampaigns = async () => {
@@ -958,10 +997,49 @@ window.fbPortalData = {
 				}
 			};
 
+			const loadMedia = async () => {
+				const res = await callApi('get_media_library', { page_id: selectedPageId.value, limit: 40 });
+				if (res && res.data) {
+					mediaItems.value = res.data;
+				} else {
+					mediaItems.value = [];
+				}
+			};
+
+			const uploadMedia = async (event) => {
+				const file = event.target.files[0];
+				if (!file) return;
+				const formData = new FormData();
+				formData.append('file', file);
+				formData.append('is_private', 0);
+				loading.value = true;
+				try {
+					const response = await fetch('/api/method/upload_file', {
+						method: 'POST',
+						headers: {
+							'X-Frappe-CSRF-Token': csrfToken.value
+						},
+						body: formData
+					});
+					const res = await response.json();
+					if (res.message && res.message.file_url) {
+						recentActions.value.unshift({ id: Date.now(), title: `Uploaded media: ${file.name}`, time: 'Just now', color: 'bg-emerald-500' });
+						loadMedia();
+					} else {
+						alert('File upload failed.');
+					}
+				} catch (e) {
+					console.error('Upload error:', e);
+					alert('File upload error.');
+				} finally {
+					loading.value = false;
+				}
+			};
+
 			const loadSettings = async () => {
 				const res = await callApi('get_portal_settings');
 				if (res && res.data) {
-					settings.value = res.data;
+					settings.value = { ...settings.value, ...res.data };
 				}
 			};
 
@@ -990,6 +1068,15 @@ window.fbPortalData = {
 					activeMessages.value.push(res.data);
 					nextTick(scrollChatBottom);
 					loadInbox(); // Refresh list to update last message
+				} else if (text) {
+					// Optimistically show in UI even if save failed
+					activeMessages.value.push({
+						name: Date.now(),
+						direction: 'Outgoing',
+						message: text,
+						timestamp: new Date().toISOString()
+					});
+					nextTick(scrollChatBottom);
 				}
 			};
 
@@ -1008,6 +1095,7 @@ window.fbPortalData = {
 				});
 				if (res) {
 					aiReplies.value = aiReplies.value.filter(r => r.name !== reply.name);
+					recentActions.value.unshift({ id: Date.now(), title: `AI reply approved for ${reply.comment_author}`, time: 'Just now', color: 'bg-emerald-500' });
 				}
 			};
 
@@ -1021,18 +1109,32 @@ window.fbPortalData = {
 
 			const schedulePostSubmit = async () => {
 				if (!newPost.value.message) return;
+				// Convert datetime-local format (2026-09-20T15:00) → Frappe format (2026-09-20 15:00:00)
+				let scheduleTime = null;
+				if (newPost.value.schedule_time) {
+					scheduleTime = newPost.value.schedule_time.replace('T', ' ');
+					if (scheduleTime.length === 16) scheduleTime += ':00'; // append seconds if missing
+				}
 				const res = await callApi('create_post', {
 					page_id: selectedPageId.value,
 					message: newPost.value.message,
 					post_type: newPost.value.post_type,
-					media_url: newPost.value.media_url,
-					schedule_time: newPost.value.schedule_time || null,
+					media_url: newPost.value.media_url || null,
+					schedule_time: scheduleTime,
 					first_comment: newPost.value.first_comment || null
 				});
 				if (res) {
 					showNewPostModal.value = false;
 					newPost.value = { message: '', post_type: 'Text', media_url: '', schedule_time: '', first_comment: '' };
+					recentActions.value.unshift({
+						id: Date.now(),
+						title: scheduleTime ? `Scheduled post for ${scheduleTime}` : 'Published post to Page',
+						time: 'Just now',
+						color: 'bg-brand-500'
+					});
 					loadCalendar();
+				} else {
+					alert('Failed to create post. Check console for details.');
 				}
 			};
 
@@ -1044,7 +1146,7 @@ window.fbPortalData = {
 					message: text,
 					post_type: 'Text'
 				});
-				if (res && res.success) {
+				if (res) {
 					quickPostText.value = '';
 					recentActions.value.unshift({ id: Date.now(), title: 'Published post to Page', time: 'Just now', color: 'bg-emerald-500' });
 					if (recentActions.value.length > 10) recentActions.value.pop();
@@ -1074,7 +1176,7 @@ window.fbPortalData = {
 					comment_name: comment.name,
 					reply_message: text
 				});
-				if (res && res.success) {
+				if (res) {
 					comment.reply_message = text;
 					commentReplyText.value[comment.name] = '';
 					recentActions.value.unshift({ id: Date.now(), title: `Replied to ${comment.commenter_name}'s comment`, time: 'Just now', color: 'bg-brand-500' });
@@ -1082,26 +1184,17 @@ window.fbPortalData = {
 			};
 
 			const saveSettings = async () => {
-				// Call whitelist API to save
-				const res = await fetch(`/api/method/frappe.desk.form.save.savedocs`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-Frappe-CSRF-Token': csrfToken.value
-					},
-					body: JSON.stringify({
-						doc: JSON.stringify({
-							doctype: 'Facebook Settings',
-							name: 'Facebook Settings',
-							graph_api_version: settings.value.graph_api_version,
-							ai_provider: settings.value.ai_provider,
-							ai_api_url: settings.value.ai_api_url,
-							ai_model_name: settings.value.ai_model_name
-						})
-					})
+				const res = await callApi('save_portal_settings', {
+					graph_api_version: settings.value.graph_api_version,
+					ai_provider: settings.value.ai_provider,
+					ai_api_url: settings.value.ai_api_url,
+					ai_model_name: settings.value.ai_model_name,
+					ai_api_key: settings.value.ai_api_key || undefined
 				});
-				if (res.ok) {
+				if (res) {
 					alert('Settings saved successfully!');
+				} else {
+					alert('Failed to save settings. Please try again.');
 				}
 			};
 
@@ -1112,6 +1205,7 @@ window.fbPortalData = {
 				loadCalendar();
 				loadCampaigns();
 				loadComments();
+				loadMedia();
 			};
 
 			const scrollChatBottom = () => {
@@ -1173,12 +1267,23 @@ window.fbPortalData = {
 				});
 			};
 
+			const loadPages = async () => {
+				const res = await callApi('get_pages');
+				if (res && res.data && res.data.length > 0) {
+					pages.value = res.data;
+					if (!selectedPageId.value || !pages.value.some(p => p.name === selectedPageId.value)) {
+						selectedPageId.value = pages.value[0].name;
+					}
+				}
+			};
+
 			const logout = () => {
 				window.location.href = '/api/method/logout';
 			};
 
-			onMounted(() => {
+			onMounted(async () => {
 				lucide.createIcons();
+				await loadPages();
 				if (selectedPageId.value) {
 					onPageChange();
 				}
@@ -1194,14 +1299,13 @@ window.fbPortalData = {
 				quickPostText, publishNow,
 				pageComments, commentFilter, commentReplyText, commentSentimentFilter,
 				loadComments, manualReplyToComment,
-				currentMonthName, calendarDays, showNewPostModal, newPost,
+				currentMonth, currentMonthName, calendarDays, prevMonth, nextMonth, showNewPostModal, newPost,
 				inboxChats, selectedChat, activeMessages, replyText, chatContainer,
-				aiReplies, campaigns, mediaItems, settings, alerts,
+				aiReplies, campaigns, mediaItems, loadMedia, uploadMedia, settings, alerts,
 				onPageChange, selectConversation, sendMessage, changeChatStatus,
 				approveReply, rejectReply, saveEditedReply, schedulePostSubmit, saveSettings,
 				formatChatTime, getSentimentClass, getCalendarEventClass, logout,
-				prevMonth: () => {}, nextMonth: () => {},
-				uploadMedia: () => {}, copyFileUrl: (url) => {
+				copyFileUrl: (url) => {
 					navigator.clipboard.writeText(url);
 					alert('URL copied to clipboard!');
 				}
@@ -1209,5 +1313,6 @@ window.fbPortalData = {
 		}
 	}).mount('#app');
 </script>
+{% endraw %}
 </body>
 </html>

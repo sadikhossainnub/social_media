@@ -23,6 +23,8 @@ def check_portal_permission(page_id=None, permission_type="can_view"):
 
 	settings = frappe.get_single("Facebook Settings")
 	roles = settings.get("team_roles") or []
+	if not roles:
+		return True
 
 	for role in roles:
 		if role.user == frappe.session.user:
@@ -118,7 +120,8 @@ def get_pages():
 	"""List all connected pages the user has permission to view."""
 	pages = frappe.get_all(
 		"Facebook Page",
-		fields=["name", "page_id", "page_name", "status", "page_category", "followers_count", "fan_count", "profile_picture_url"]
+		fields=["name", "page_id", "page_name", "status", "page_category", "followers_count", "fan_count", "profile_picture_url"],
+		ignore_permissions=True
 	)
 	
 	# Filter pages by user team role
@@ -653,15 +656,92 @@ def get_portal_settings():
 		
 	settings = frappe.get_single("Facebook Settings")
 	
-	# Exclude secrets
-	settings_dict = settings.as_dict()
-	settings_dict.pop("app_secret", None)
-	settings_dict.pop("page_access_token", None)
-	settings_dict.pop("user_access_token", None)
-	settings_dict.pop("webhook_signature_secret", None)
-	settings_dict.pop("ai_api_key", None)
-	
-	return api_response(success=True, data=settings_dict)
+	return api_response(success=True, data={
+		"graph_api_version": settings.graph_api_version or "v21.0",
+		"ai_provider": getattr(settings, "ai_provider", "primellm"),
+		"ai_api_url": getattr(settings, "ai_api_url", ""),
+		"ai_model_name": getattr(settings, "ai_model_name", ""),
+		"enable_auto_post": settings.enable_auto_post,
+		"enable_messenger": settings.enable_messenger,
+		"enable_ads_management": settings.enable_ads_management,
+		"is_connected": settings.is_connected,
+	})
+
+
+@frappe.whitelist()
+def save_portal_settings(graph_api_version=None, ai_provider=None, ai_api_url=None, ai_model_name=None, ai_api_key=None):
+	"""Save portal settings back to Facebook Settings doctype."""
+	if not check_portal_permission(permission_type="can_settings"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	try:
+		settings = frappe.get_single("Facebook Settings")
+		if graph_api_version is not None and hasattr(settings, "graph_api_version"):
+			settings.graph_api_version = graph_api_version
+		if ai_provider is not None and hasattr(settings, "ai_provider"):
+			settings.ai_provider = ai_provider
+		if ai_api_url is not None and hasattr(settings, "ai_api_url"):
+			settings.ai_api_url = ai_api_url
+		if ai_model_name is not None and hasattr(settings, "ai_model_name"):
+			settings.ai_model_name = ai_model_name
+		if ai_api_key and hasattr(settings, "ai_api_key"):
+			settings.ai_api_key = ai_api_key
+		settings.save(ignore_permissions=True)
+		frappe.db.commit()
+		return api_response(success=True, message="Settings saved successfully")
+	except Exception as e:
+		frappe.log_error("Portal Settings Save Error", str(e))
+		return api_response(success=False, message=str(e))
+
+
+
+@frappe.whitelist()
+def get_media_library(page_id=None, media_type=None, page=1, limit=40):
+	"""Get uploaded files/media from Frappe File manager for use in posts."""
+	if not check_portal_permission(permission_type="can_view"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	filters = {"is_folder": 0}
+	if media_type == "Image":
+		filters["file_type"] = ["in", ["image/jpeg", "image/png", "image/gif", "image/webp", "jpg", "jpeg", "png", "gif", "webp"]]
+	elif media_type == "Video":
+		filters["file_type"] = ["in", ["video/mp4", "video/webm", "mp4", "webm"]]
+
+	limit_start = (int(page) - 1) * int(limit)
+
+	try:
+		files = frappe.get_all(
+			"File",
+			filters=filters,
+			fields=["name", "file_name", "file_url", "file_size", "file_type", "creation", "attached_to_doctype"],
+			order_by="creation desc",
+			limit_start=limit_start,
+			limit_page_length=limit,
+			ignore_permissions=True
+		)
+
+		# Normalize fields for frontend
+		result = []
+		for f in files:
+			media_t = "Image"
+			if f.file_type and f.file_type.lower() in ("mp4", "webm", "video/mp4", "video/webm"):
+				media_t = "Video"
+			result.append({
+				"name": f.name,
+				"title": f.file_name or f.name,
+				"file": f.file_url,
+				"media_type": media_t,
+				"tags": "",
+				"usage_count": 0,
+				"created": str(f.creation)
+			})
+
+		total_count = frappe.db.count("File", filters=filters)
+		return api_response(success=True, data=result, total_count=total_count)
+	except Exception as e:
+		frappe.log_error("Portal Media Library Error", str(e))
+		return api_response(success=False, message=str(e))
+
 
 
 # ── Ads Management Portal APIs ────────────────────────────────────────────────

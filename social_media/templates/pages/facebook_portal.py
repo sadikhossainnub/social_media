@@ -16,7 +16,7 @@ def get_context(context):
 	permissions = {}
 
 	if is_admin:
-		pages = frappe.get_all("Facebook Page", fields=["name", "page_name", "profile_picture_url"])
+		pages = frappe.get_all("Facebook Page", fields=["name", "page_name", "profile_picture_url"], ignore_permissions=True)
 		for p in pages:
 			permissions[p.name] = {
 				"can_post": 1,
@@ -30,25 +30,38 @@ def get_context(context):
 		try:
 			settings = frappe.get_single("Facebook Settings")
 			roles = settings.get("team_roles") or []
-			for r in roles:
-				if r.user == frappe.session.user:
-					permissions[r.page] = {
-						"can_post": r.can_post,
-						"can_comment": r.can_comment,
-						"can_message": r.can_message,
-						"can_ads": r.can_ads,
-						"can_insights": r.can_insights,
-						"can_settings": r.can_settings
+			if not roles:
+				pages = frappe.get_all("Facebook Page", fields=["name", "page_name", "profile_picture_url"], ignore_permissions=True)
+				for p in pages:
+					permissions[p.name] = {
+						"can_post": 1,
+						"can_comment": 1,
+						"can_message": 1,
+						"can_ads": 1,
+						"can_insights": 1,
+						"can_settings": 1
 					}
-			allowed_names = list(permissions.keys())
-			if allowed_names:
-				pages = frappe.get_all(
-					"Facebook Page",
-					filters={"name": ["in", allowed_names]},
-					fields=["name", "page_name", "profile_picture_url"]
-				)
+			else:
+				for r in roles:
+					if r.user == frappe.session.user:
+						permissions[r.page] = {
+							"can_post": r.can_post,
+							"can_comment": r.can_comment,
+							"can_message": r.can_message,
+							"can_ads": r.can_ads,
+							"can_insights": r.can_insights,
+							"can_settings": r.can_settings
+						}
+				allowed_names = list(permissions.keys())
+				if allowed_names:
+					pages = frappe.get_all(
+						"Facebook Page",
+						filters={"name": ["in", allowed_names]},
+						fields=["name", "page_name", "profile_picture_url"],
+						ignore_permissions=True
+					)
 		except Exception:
-			pass
+			pages = frappe.get_all("Facebook Page", fields=["name", "page_name", "profile_picture_url"], ignore_permissions=True)
 
 	portal_data = {
 		"userFullName": frappe.utils.get_fullname(frappe.session.user),
@@ -62,11 +75,12 @@ def get_context(context):
 	# Read the static HTML file (no Jinja syntax inside)
 	html_path = os.path.join(
 		os.path.dirname(__file__),
-		"facebook_portal_app.html"
+		"facebook_portal.html"
 	)
 
 	if not os.path.exists(html_path):
-		frappe.throw("Portal HTML file not found: facebook_portal_app.html")
+		frappe.throw("Portal HTML file not found: facebook_portal.html")
+
 
 	with open(html_path, "r", encoding="utf-8") as f:
 		html = f.read()

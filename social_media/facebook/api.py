@@ -357,7 +357,8 @@ def get_sender_name(sender_psid):
 		"fields": "first_name,last_name,name"
 	}
 
-	url = f"https://graph.facebook.com/v21.0/{sender_psid}"
+	from social_media.facebook.utils import get_graph_api_version
+	url = f"https://graph.facebook.com/{get_graph_api_version()}/{sender_psid}"
 
 	try:
 		response = requests.get(url, params=params, timeout=15)
@@ -398,7 +399,8 @@ def get_lead_details(lead_id):
 		"fields": "id,form_id,created_time,field_data,ad_id,ad_name,campaign_id,campaign_name"
 	}
 
-	url = f"https://graph.facebook.com/v21.0/{lead_id}"
+	from social_media.facebook.utils import get_graph_api_version
+	url = f"https://graph.facebook.com/{get_graph_api_version()}/{lead_id}"
 
 	try:
 		response = requests.get(url, params=params, timeout=15)

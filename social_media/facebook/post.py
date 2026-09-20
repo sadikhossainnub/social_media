@@ -33,19 +33,18 @@ def post_to_page(message, link=None, image_url=None, page_id=None):
     if not target_page_id:
         return {"success": False, "error": "No page ID configured"}
     
-    # Build post data
-    post_data = {
-        "message": message
-    }
-    
-    if link:
-        post_data["link"] = link
-    
+    # Make API call based on whether an image URL is attached
     if image_url:
-        post_data["picture"] = image_url
-    
-    # Make API call
-    result = make_graph_request(f"/{target_page_id}/feed", method="POST", data=post_data)
+        photo_data = {
+            "url": image_url,
+            "caption": message
+        }
+        result = make_graph_request(f"/{target_page_id}/photos", method="POST", data=photo_data)
+    else:
+        post_data = {"message": message}
+        if link:
+            post_data["link"] = link
+        result = make_graph_request(f"/{target_page_id}/feed", method="POST", data=post_data)
     
     if not result:
         return {"success": False, "error": "Failed to post to Facebook"}
@@ -54,10 +53,11 @@ def post_to_page(message, link=None, image_url=None, page_id=None):
     create_post_log(
         reference_doctype="Facebook Settings",
         reference_name=settings.name,
-        post_id=result.get("id"),
+        post_id=result.get("id") or result.get("post_id"),
         message=message,
         status="Posted"
     )
+
     
     return {
         "success": True,

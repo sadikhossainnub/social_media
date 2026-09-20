@@ -12,15 +12,13 @@ class FacebookSettings(Document):
         """Set dynamic fields on load."""
         site_url = frappe.utils.get_url()
         self.webhook_url = f"{site_url}/api/method/social_media.facebook.api.webhook"
-        if not self.redirect_uri:
-            self.redirect_uri = f"{site_url}/api/method/social_media.facebook.auth.callback"
+        self.redirect_uri = f"{site_url}/api/method/social_media.facebook.auth.callback"
 
     def before_save(self):
         """Set the redirect URI before saving and format graph_api_version."""
         site_url = frappe.utils.get_url()
         self.webhook_url = f"{site_url}/api/method/social_media.facebook.api.webhook"
-        if not self.redirect_uri:
-            self.redirect_uri = f"{site_url}/api/method/social_media.facebook.auth.callback"
+        self.redirect_uri = f"{site_url}/api/method/social_media.facebook.auth.callback"
         
         # Format Graph API Version string (e.g. '21' -> 'v21.0', '21.0' -> 'v21.0')
         if self.graph_api_version:
@@ -44,14 +42,12 @@ class FacebookSettings(Document):
 
     def update_connection_status(self):
         """Update connection status based on current state"""
-        if self.page_access_token or (self.is_connected and self.app_id):
-            frappe.db.set_value("Facebook Settings", self.name, "is_connected", 1, update_modified=False)
-        else:
-            frappe.db.set_value("Facebook Settings", self.name, "is_connected", 0, update_modified=False)
+        has_token = bool(self.get_password("page_access_token") or self.get_password("user_access_token") or self.page_access_token)
+        status = 1 if has_token or (self.is_connected and self.app_id) else 0
+        frappe.db.set_single_value("Facebook Settings", "is_connected", status)
 
 
-
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def get_connection_status():
     """Get current connection status."""
     settings = frappe.get_doc("Facebook Settings")
@@ -70,12 +66,10 @@ def refresh_token():
     """Refresh the access token if it's about to expire."""
     settings = frappe.get_doc("Facebook Settings")
     
-    # Use get_password() for Password fields
     user_access_token = settings.get_password("user_access_token")
     if not user_access_token:
         return {"success": False, "message": "No user token found"}
     
-    # Check if token is expiring soon (within 7 days)
     if settings.token_expiry:
         from frappe.utils import get_datetime
         expiry_dt = get_datetime(settings.token_expiry)
@@ -86,14 +80,12 @@ def refresh_token():
                 "message": f"Token valid for {days_until_expiry} more days"
             }
     
-    # Import auth module and refresh
     from social_media.facebook import auth
     tokens = auth.exchange_short_lived_token(user_access_token)
     
     if not tokens:
         return {"success": False, "message": "Failed to refresh token"}
     
-    # Update settings
     settings.user_access_token = tokens.get("access_token")
     
     if "expires_in" in tokens:
@@ -111,7 +103,7 @@ def refresh_token():
 
 @frappe.whitelist()
 def disconnect():
-    """Disconnect from Facebook."""
+    """Disconnect from Facebook and clean up stored tokens."""
     settings = frappe.get_doc("Facebook Settings")
     
     settings.is_connected = 0
@@ -122,6 +114,12 @@ def disconnect():
     settings.token_expiry = None
     
     settings.save(ignore_permissions=True)
+    
+    # Erase encrypted password entries for Facebook Settings from tabSingles / tabPassword
+    frappe.db.sql(
+        "DELETE FROM `tabSingles` WHERE `doctype` = 'Facebook Settings' AND `field` IN ('page_access_token', 'user_access_token')"
+    )
+    frappe.db.commit()
     
     return {"message": "Disconnected from Facebook"}
 
@@ -165,21 +163,12 @@ def get_leads(form_id=None, status=None):
 def set_manual_token(page_access_token, page_id=None, page_name=None):
 	"""
 	Manually set a Page Access Token obtained from Facebook Graph API Explorer.
-
-	Args:
-		page_access_token : Valid Facebook Page Access Token
-		page_id           : Facebook Page ID (optional — fetched automatically if blank)
-		page_name         : Facebook Page Name (optional — fetched automatically if blank)
-
-	Returns:
-		dict: Result with success flag and message
 	"""
 	import requests
 
 	if not page_access_token:
-		frappe.throw("Page Access Token is required.")
+		return {"success": False, "error": "Page Access Token is required."}
 
-	# ── Validate the token against Facebook Graph API ──────────────────────────
 	try:
 		settings_doc = frappe.get_doc("Facebook Settings")
 		api_ver = getattr(settings_doc, "graph_api_version", None) or "v21.0"
@@ -193,28 +182,25 @@ def set_manual_token(page_access_token, page_id=None, page_name=None):
 
 		if resp.status_code != 200 or "error" in result:
 			error_msg = result.get("error", {}).get("message", "Invalid token")
-			frappe.throw(f"Token validation failed: {error_msg}")
+			return {"success": False, "error": f"Token validation failed: {error_msg}"}
 
-		# Auto-fill page_id / page_name from the API response if not supplied
 		if not page_id:
 			page_id = result.get("id", "")
 		if not page_name:
 			page_name = result.get("name", "")
 
 	except requests.exceptions.RequestException as e:
-		frappe.throw(f"Could not reach Facebook API: {str(e)}")
+		return {"success": False, "error": f"Could not reach Facebook API: {str(e)}"}
 
-	# ── Save to Facebook Settings ───────────────────────────────────────────────
 	settings = frappe.get_doc("Facebook Settings")
 	settings.page_access_token = page_access_token
-	settings.user_access_token = page_access_token   # use as user token too
+	settings.user_access_token = page_access_token
 	settings.page_id           = page_id
 	settings.page_name         = page_name
 	settings.is_connected      = 1
-	settings.token_expiry      = None                 # unknown expiry for manual tokens
+	settings.token_expiry      = None
 	settings.save(ignore_permissions=True)
 
-	# Auto-create or update Facebook Page document
 	from social_media.facebook.auth import create_or_update_facebook_page
 	create_or_update_facebook_page(page_id, page_name, page_access_token)
 
@@ -226,3 +212,4 @@ def set_manual_token(page_access_token, page_id=None, page_name=None):
 		"page_id"   : page_id,
 		"page_name" : page_name,
 	}
+

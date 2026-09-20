@@ -168,7 +168,8 @@ def get_sender_name(sender_psid):
         "fields": "first_name,last_name,name"
     }
     
-    url = f"https://graph.facebook.com/v18.0/{sender_psid}"
+    from social_media.facebook.utils import get_graph_api_version
+    url = f"https://graph.facebook.com/{get_graph_api_version()}/{sender_psid}"
     
     try:
         response = requests.get(url, params=params, timeout=15)
@@ -184,15 +185,16 @@ def get_sender_name(sender_psid):
 
 
 def find_customer_by_psid(psid):
-    """Find customer by PSID."""
-    # Check if customer exists with PSID
-    customer = frappe.db.get_value(
-        "Customer",
-        {"facebook_psid": psid},
-        "name"
-    )
-    
-    return customer
+    """Find customer by PSID safely."""
+    if not psid:
+        return None
+    try:
+        if frappe.db.has_column("Customer", "facebook_psid"):
+            return frappe.db.get_value("Customer", {"facebook_psid": psid}, "name")
+    except Exception:
+        pass
+    return None
+
 
 
 def auto_reply(sender_psid, message_text):

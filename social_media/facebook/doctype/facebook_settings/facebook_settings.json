@@ -1,8 +1,9 @@
 {
  "actions": [],
- "creation": "2026-05-29 00:00:00.000000",
+ "creation": "2026-05-29 00:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
+
  "field_order": [
   "connection_section",
   "is_connected",
@@ -53,11 +54,11 @@
    "label": "Connection Status"
   },
   {
+   "default": "0",
    "fieldname": "is_connected",
    "fieldtype": "Check",
    "label": "Connected to Facebook",
-   "read_only": 1,
-   "default": 0
+   "read_only": 1
   },
   {
    "fieldname": "connection_status_html",
@@ -71,24 +72,26 @@
    "label": "App Credentials"
   },
   {
+   "description": "Your Facebook App ID from the Developer Dashboard",
    "fieldname": "app_id",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "App ID",
-   "reqd": 1,
-   "description": "Your Facebook App ID from the Developer Dashboard"
+   "reqd": 1
   },
   {
+   "description": "Your Facebook App Secret (keep this confidential)",
    "fieldname": "app_secret",
    "fieldtype": "Password",
+   "in_list_view": 1,
    "label": "App Secret",
-   "reqd": 1,
-   "description": "Your Facebook App Secret (keep this confidential)"
+   "reqd": 1
   },
   {
+   "default": "v21.0",
    "fieldname": "graph_api_version",
    "fieldtype": "Data",
-   "label": "Graph API Version",
-   "default": "v21.0"
+   "label": "Graph API Version"
   },
   {
    "fieldname": "webhook_signature_secret",
@@ -101,11 +104,11 @@
    "label": "OAuth Configuration"
   },
   {
+   "description": "Copy this URL to Facebook Developer Console > OAuth Settings",
    "fieldname": "redirect_uri",
    "fieldtype": "Data",
    "label": "Redirect URI",
-   "read_only": 1,
-   "description": "Copy this URL to Facebook Developer Console > OAuth Settings"
+   "read_only": 1
   },
   {
    "fieldname": "connect_button",
@@ -171,29 +174,32 @@
    "label": "Messenger Settings"
   },
   {
+   "description": "Copy this URL to Facebook Developer Console > Webhooks > Callback URL",
    "fieldname": "webhook_url",
    "fieldtype": "Data",
    "label": "Webhook URL",
-   "read_only": 1,
-   "description": "Copy this URL to Facebook Developer Console > Webhooks > Callback URL"
+   "read_only": 1
   },
   {
+   "description": "Token for Messenger webhook verification",
    "fieldname": "messenger_verify_token",
    "fieldtype": "Data",
-   "label": "Messenger Verify Token",
-   "description": "Token for Messenger webhook verification"
+   "label": "Messenger Verify Token"
   },
   {
+   "default": "0",
    "fieldname": "enable_lead_ads",
    "fieldtype": "Check",
    "label": "Enable Lead Ads Auto-Capture"
   },
   {
+   "default": "0",
    "fieldname": "enable_auto_post",
    "fieldtype": "Check",
    "label": "Enable Auto-Post"
   },
   {
+   "default": "0",
    "fieldname": "enable_messenger",
    "fieldtype": "Check",
    "label": "Enable Messenger Webhook"
@@ -210,11 +216,11 @@
    "label": "AI Configuration"
   },
   {
+   "default": "primellm",
    "fieldname": "ai_provider",
    "fieldtype": "Select",
    "label": "AI Provider",
-   "options": "primellm\nanthropic\nopenai",
-   "default": "primellm"
+   "options": "primellm\nanthropic\nopenai"
   },
   {
    "fieldname": "ai_api_url",
@@ -237,43 +243,45 @@
    "label": "Auto-Post Settings"
   },
   {
+   "default": "1",
    "fieldname": "auto_post_on_invoice",
    "fieldtype": "Check",
-   "label": "Auto-Post on Sales Invoice Submit",
-   "default": 1
+   "label": "Auto-Post on Sales Invoice Submit"
   },
   {
+   "default": "1",
    "fieldname": "auto_post_on_order",
    "fieldtype": "Check",
-   "label": "Auto-Post on Sales Order Submit",
-   "default": 1
+   "label": "Auto-Post on Sales Order Submit"
   },
   {
+   "description": "Requires Facebook Marketing API access (ads_management + ads_read permissions)",
    "fieldname": "ads_section",
    "fieldtype": "Section Break",
-   "label": "Ads Management",
-   "description": "Requires Facebook Marketing API access (ads_management + ads_read permissions)"
+   "label": "Ads Management"
   },
   {
+   "default": "0",
+   "description": "Enable to sync campaigns, ad sets, and ads from Facebook Marketing API",
    "fieldname": "enable_ads_management",
    "fieldtype": "Check",
-   "label": "Enable Ads Management",
-   "description": "Enable to sync campaigns, ad sets, and ads from Facebook Marketing API"
+   "label": "Enable Ads Management"
   },
   {
+   "depends_on": "enable_ads_management",
+   "description": "Default ad account for new campaigns",
    "fieldname": "default_ad_account",
    "fieldtype": "Link",
    "label": "Default Ad Account",
-   "options": "Facebook Ad Account",
-   "depends_on": "enable_ads_management",
-   "description": "Default ad account for new campaigns"
+   "options": "Facebook Ad Account"
   },
   {
+   "default": "0",
+   "depends_on": "enable_ads_management",
+   "description": "Automatically sync campaigns and insights every 6 hours via scheduler",
    "fieldname": "auto_sync_ads",
    "fieldtype": "Check",
-   "label": "Auto Sync Ads (Every 6 Hours)",
-   "depends_on": "enable_ads_management",
-   "description": "Automatically sync campaigns and insights every 6 hours via scheduler"
+   "label": "Auto Sync Ads (Every 6 Hours)"
   },
   {
    "fieldname": "team_roles_section",
@@ -289,11 +297,12 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-07-12 00:00:00.000000",
+ "modified": "2026-08-31 15:00:04.783607",
  "modified_by": "Administrator",
  "module": "Facebook",
  "name": "Facebook Settings",
  "owner": "Administrator",
+
  "permissions": [
   {
    "create": 1,
@@ -306,7 +315,9 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

@@ -7,6 +7,7 @@ import frappe
 import requests
 import json
 from datetime import datetime, timedelta
+from social_media.facebook.utils import get_graph_api_version
 
 
 @frappe.whitelist(allow_guest=True)
@@ -28,7 +29,7 @@ def verify_facebook_login(access_token, user_id):
 			"access_token": access_token
 		}
 		
-		url = "https://graph.facebook.com/v18.0/debug_token"
+		url = f"https://graph.facebook.com/{get_graph_api_version()}/debug_token"
 		response = requests.get(url, params=params, timeout=10)
 		result = response.json()
 		
@@ -73,11 +74,13 @@ def get_oauth_url():
 	"""
 	settings = frappe.get_doc("Facebook Settings")
 	
-	if not settings.app_id:
-		frappe.throw("Facebook App ID is not configured.")
+	app_id = str(settings.app_id or "").strip()
+	if not app_id or app_id == "Facebook Settings":
+		frappe.throw("Facebook App ID সঠিক নয়! অনুগ্রহ করে Facebook Settings এ আপনার আসল Facebook App ID (একটি বড় সংখ্যা, যেমন: 123456789012345) দিয়ে Save করুন।")
 	
 	# Get redirect URI
 	site_url = frappe.utils.get_url()
+
 	redirect_uri = f"{site_url}/api/method/social_media.facebook.auth.callback"
 	
 	api_version = getattr(settings, "graph_api_version", None) or "v21.0"
@@ -179,9 +182,13 @@ def callback():
 		save_tokens(tokens, selected_page)
 		frappe.log_error("Tokens saved successfully!", "Facebook OAuth")
 		
+		# Commit transaction to ensure Facebook Page & Facebook Settings are saved to DB
+		frappe.db.commit()
+		
 		# Redirect with success
 		frappe.local.response["type"] = "redirect"
 		frappe.local.response["location"] = "/app/facebook-settings?oauth=success"
+
 		
 	except Exception as e:
 		frappe.log_error(f"OAuth callback exception: {str(e)}\n{frappe.get_traceback()}", "Facebook OAuth")
@@ -216,7 +223,7 @@ def exchange_code_for_token(code):
 		"code": code
 	}
 	
-	url = "https://graph.facebook.com/v18.0/oauth/access_token"
+	url = f"https://graph.facebook.com/{get_graph_api_version()}/oauth/access_token"
 	
 	try:
 		frappe.log_error(f"Making request to {url}", "Facebook OAuth")
@@ -260,7 +267,7 @@ def exchange_short_lived_token(user_token):
 		"fb_exchange_token": user_token
 	}
 	
-	url = "https://graph.facebook.com/v18.0/oauth/access_token"
+	url = f"https://graph.facebook.com/{get_graph_api_version()}/oauth/access_token"
 	
 	try:
 		response = requests.get(url, params=params, timeout=30)
@@ -292,7 +299,7 @@ def get_user_pages(access_token):
 		"fields": "id,name,access_token"
 	}
 	
-	url = "https://graph.facebook.com/v18.0/me/accounts"
+	url = f"https://graph.facebook.com/{get_graph_api_version()}/me/accounts"
 	
 	try:
 		frappe.log_error(f"Fetching pages from {url}", "Facebook OAuth")
@@ -380,7 +387,10 @@ def create_or_update_facebook_page(page_id, page_name, access_token):
 			page_doc.status = "Active"
 			page_doc.insert(ignore_permissions=True)
 			frappe.log_error(f"Created new Facebook Page document: {page_id}", "Facebook OAuth")
+		
+		frappe.db.commit()
 	except Exception as e:
+
 		frappe.log_error(f"Error in create_or_update_facebook_page: {str(e)}\n{frappe.get_traceback()}", "Facebook OAuth")
 
 

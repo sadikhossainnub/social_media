@@ -15,11 +15,9 @@ function initialize_facebook_sdk(app_id, api_version) {
             version: version
         });
         
-        // Check login status after SDK initialization
         check_facebook_login_status();
     };
     
-    // Load Facebook SDK
     (function(d, s, id) {
         var js, fjs = d.getElementsByTagName(s)[0];
         if (d.getElementById(id)) return;
@@ -30,7 +28,6 @@ function initialize_facebook_sdk(app_id, api_version) {
     }(document, 'script', 'facebook-jssdk'));
 }
 
-// Check Facebook login status
 function check_facebook_login_status() {
     if (!window.FB) {
         console.warn('Facebook SDK not loaded');
@@ -42,10 +39,8 @@ function check_facebook_login_status() {
     });
 }
 
-// Handle status change callback
 function status_change_callback(response) {
     if (response.status === 'connected') {
-        console.log('User is logged into Facebook', response.authResponse);
         frappe.call({
             method: 'social_media.facebook.auth.verify_facebook_login',
             args: {
@@ -58,17 +53,13 @@ function status_change_callback(response) {
                 }
             }
         });
-    } else if (response.status === 'not_authorized') {
-        console.log('User is logged into Facebook but not authorized for this app');
-    } else {
-        console.log('User is not logged into Facebook');
     }
 }
 
 frappe.ui.form.on('Facebook Settings', {
     refresh: function(frm) {
         // Set dynamic fields
-        const site_url = frappe.utils.get_url();
+        const site_url = (frappe.urllib ? frappe.urllib.get_base_url() : window.location.origin).replace(/\/$/, '');
         const expected_webhook_url = `${site_url}/api/method/social_media.facebook.api.webhook`;
         const expected_redirect_uri = `${site_url}/api/method/social_media.facebook.auth.callback`;
         
@@ -79,24 +70,35 @@ frappe.ui.form.on('Facebook Settings', {
             frm.set_value('redirect_uri', expected_redirect_uri);
         }
 
-        // Initialize Facebook SDK
+        // Style URLs
+        if (frm.fields_dict.redirect_uri && frm.fields_dict.redirect_uri.input) {
+            $(frm.fields_dict.redirect_uri.input).css({
+                'font-family': 'monospace',
+                'font-size': '13px',
+                'word-break': 'break-all',
+                'white-space': 'pre-wrap'
+            });
+        }
+        if (frm.fields_dict.webhook_url && frm.fields_dict.webhook_url.input) {
+            $(frm.fields_dict.webhook_url.input).css({
+                'font-family': 'monospace',
+                'font-size': '13px',
+                'word-break': 'break-all',
+                'white-space': 'pre-wrap'
+            });
+        }
+
         if (frm.doc.app_id) {
             initialize_facebook_sdk(frm.doc.app_id);
         }
         
-        // Update UI based on connection status
         update_connection_ui(frm);
-        
-        // Add custom buttons
         add_custom_buttons(frm);
-
-        // Bind events to the HTML buttons in the form
         bind_html_buttons(frm);
     },
 
     app_id: function(frm) {
         update_redirect_uri(frm);
-        // Re-initialize SDK if app ID changes
         if (frm.doc.app_id) {
             initialize_facebook_sdk(frm.doc.app_id);
         }
@@ -109,22 +111,12 @@ frappe.ui.form.on('Facebook Settings', {
 
 function update_redirect_uri(frm) {
     if (frm.doc.app_id && !frm.doc.redirect_uri) {
-        frappe.call({
-            method: 'frappe.client.get',
-            args: {
-                doctype: 'Facebook Settings',
-                name: 'Facebook Settings'
-            },
-            callback: function(r) {
-                if (r.message) {
-                    const site_url = frappe.utils.get_url();
-                    const redirect_uri = `${site_url}/api/method/social_media.facebook.auth.callback`;
-                    frm.set_value('redirect_uri', redirect_uri);
-                }
-            }
-        });
+        const site_url = (frappe.urllib ? frappe.urllib.get_base_url() : window.location.origin).replace(/\/$/, '');
+        const redirect_uri = `${site_url}/api/method/social_media.facebook.auth.callback`;
+        frm.set_value('redirect_uri', redirect_uri);
     }
 }
+
 
 function update_connection_ui(frm) {
     const status_html = $(frm.fields_dict.connection_status_html.$wrapper);
@@ -139,10 +131,8 @@ function update_connection_ui(frm) {
             </div>
         `);
         
-        // Show disconnect button
-        $(frm.fields_dict.disconnect_button.$wrapper).show();
-        $(frm.fields_dict.disconnect_button.$wrapper).find('#disconnect-facebook').show();
-        $(frm.fields_dict.connect_button.$wrapper).hide();
+        if (frm.fields_dict.disconnect_button) $(frm.fields_dict.disconnect_button.$wrapper).show();
+        if (frm.fields_dict.connect_button) $(frm.fields_dict.connect_button.$wrapper).hide();
     } else {
         status_html.html(`
             <div class="alert alert-info">
@@ -156,74 +146,58 @@ function update_connection_ui(frm) {
             </div>
         `);
         
-        // Hide disconnect button
-        $(frm.fields_dict.disconnect_button.$wrapper).hide();
-        $(frm.fields_dict.connect_button.$wrapper).show();
-        $(frm.fields_dict.connect_button.$wrapper).find('#connect-facebook').show();
+        if (frm.fields_dict.disconnect_button) $(frm.fields_dict.disconnect_button.$wrapper).hide();
+        if (frm.fields_dict.connect_button) $(frm.fields_dict.connect_button.$wrapper).show();
     }
 }
 
-function bind_html_buttons(frm) {
-    // Connect button click
-    $(frm.wrapper).find('#connect-facebook').off('click').on('click', function(e) {
-        e.preventDefault();
-        frappe.call({
-            method: 'social_media.facebook.auth.get_oauth_url',
-            callback: function(r) {
-                if (r.message) {
-                    const popup = window.open(r.message, '_blank', 'width=600,height=700');
-                    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-                        frappe.msgprint({
-                            title: __('Popup Blocked'),
-                            indicator: 'red',
-                            message: __('Please allow popups for this site to complete the OAuth flow.')
-                        });
-                    }
-                }
+function trigger_connect_oauth() {
+    // Open blank popup synchronously to bypass popup blocker
+    const popup = window.open('about:blank', '_blank', 'width=600,height=700');
+    frappe.call({
+        method: 'social_media.facebook.auth.get_oauth_url',
+        callback: function(r) {
+            if (r.message && popup && !popup.closed) {
+                popup.location.href = r.message;
+            } else if (popup) {
+                popup.close();
             }
-        });
+        },
+        error: function() {
+            if (popup) popup.close();
+        }
+    });
+}
+
+function bind_html_buttons(frm) {
+    // Use event delegation on frm.wrapper so handlers persist across DOM re-renders
+    $(frm.wrapper).off('click', '#connect-facebook').on('click', '#connect-facebook', function(e) {
+        e.preventDefault();
+        trigger_connect_oauth();
     });
 
-    // Disconnect button click
-    $(frm.wrapper).find('#disconnect-facebook').off('click').on('click', function(e) {
+    $(frm.wrapper).off('click', '#disconnect-facebook').on('click', '#disconnect-facebook', function(e) {
         e.preventDefault();
-        frappe.confirm('Are you sure you want to disconnect from Facebook?', function() {
+        frappe.confirm(__('Are you sure you want to disconnect from Facebook?'), function() {
             frappe.call({
-                method: 'social_media.facebook.auth.disconnect',
+                method: 'social_media.facebook.doctype.facebook_settings.facebook_settings.disconnect',
                 callback: function(r) {
-                    if (r.message) {
-                        frappe.msgprint({
-                            title: __('Disconnected'),
-                            indicator: 'green',
-                            message: r.message.message
-                        });
-                        frm.reload_doc();
-                    }
+                    frappe.show_alert({ message: __('Disconnected successfully'), indicator: 'green' });
+                    frm.reload_doc();
                 }
             });
         });
     });
 
-    // Refresh Token button click
-    $(frm.wrapper).find('#refresh-token').off('click').on('click', function(e) {
+    $(frm.wrapper).off('click', '#refresh-token').on('click', '#refresh-token', function(e) {
         e.preventDefault();
         frappe.call({
             method: 'social_media.facebook.doctype.facebook_settings.facebook_settings.refresh_token',
             callback: function(r) {
-                if (r.message) {
-                    if (r.message.success) {
-                        frappe.msgprint({
-                            title: __('Success'),
-                            indicator: 'green',
-                            message: r.message.message
-                        });
-                    } else {
-                        frappe.msgprint({
-                            title: __('Error'),
-                            indicator: 'red',
-                            message: r.message.message
-                        });
-                    }
+                if (r.message && r.message.success) {
+                    frappe.msgprint({ title: __('Success'), indicator: 'green', message: r.message.message });
+                } else if (r.message) {
+                    frappe.msgprint({ title: __('Notice'), indicator: 'orange', message: r.message.message });
                 }
             }
         });
@@ -231,30 +205,13 @@ function bind_html_buttons(frm) {
 }
 
 function add_custom_buttons(frm) {
-    // Connect with Facebook button
+    frm.clear_custom_buttons();
+
     if (!frm.doc.is_connected) {
         frm.add_custom_button(__('Connect with Facebook'), function() {
-            frappe.call({
-                method: 'social_media.facebook.auth.get_oauth_url',
-                callback: function(r) {
-                    if (r.message) {
-                        // Open OAuth URL in popup
-                        const popup = window.open(r.message, '_blank', 'width=600,height=700');
-                        
-                        // Check if popup was blocked
-                        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-                            frappe.msgprint({
-                                title: __('Popup Blocked'),
-                                indicator: 'red',
-                                message: __('Please allow popups for this site to complete the OAuth flow.')
-                            });
-                        }
-                    }
-                }
-            });
-        }, 'Facebook').addClass('btn-primary');
+            trigger_connect_oauth();
+        }).addClass('btn-primary');
 
-        // Manual Token button
         frm.add_custom_button(__('Set Token Manually'), function() {
             const d = new frappe.ui.Dialog({
                 title: __('Set Page Access Token Manually'),
@@ -299,9 +256,9 @@ function add_custom_buttons(frm) {
                     frappe.call({
                         method: 'social_media.facebook.doctype.facebook_settings.facebook_settings.set_manual_token',
                         args: {
-                            page_access_token : values.page_access_token,
-                            page_id           : values.page_id || null,
-                            page_name         : values.page_name || null
+                            page_access_token : values.page_access_token.trim(),
+                            page_id           : values.page_id ? values.page_id.trim() : null,
+                            page_name         : values.page_name ? values.page_name.trim() : null
                         },
                         freeze: true,
                         freeze_message: __('Validating token with Facebook...'),
@@ -313,80 +270,73 @@ function add_custom_buttons(frm) {
                                 }, 6);
                                 d.hide();
                                 frm.reload_doc();
+                            } else if (r.message && r.message.error) {
+                                frappe.msgprint({
+                                    title: __('Validation Failed'),
+                                    indicator: 'red',
+                                    message: r.message.error
+                                });
                             }
                         }
                     });
                 }
             });
             d.show();
-        }, 'Facebook').addClass('btn-warning');
+        }).addClass('btn-warning');
     } else {
-        // Disconnect button
         frm.add_custom_button(__('Disconnect'), function() {
-            frappe.confirm('Are you sure you want to disconnect from Facebook?', function() {
+            frappe.confirm(__('Are you sure you want to disconnect from Facebook?'), function() {
                 frappe.call({
-                    method: 'social_media.facebook.auth.disconnect',
+                    method: 'social_media.facebook.doctype.facebook_settings.facebook_settings.disconnect',
                     callback: function(r) {
-                        if (r.message) {
-                            frappe.msgprint({
-                                title: __('Disconnected'),
-                                indicator: 'green',
-                                message: r.message.message
-                            });
-                            frm.reload_doc();
-                        }
+                        frappe.show_alert({ message: __('Disconnected successfully'), indicator: 'green' });
+                        frm.reload_doc();
                     }
                 });
             });
-        }, 'Facebook').addClass('btn-danger');
+        }).addClass('btn-danger');
         
-        // Test Post button
         frm.add_custom_button(__('Test Post'), function() {
             frappe.call({
                 method: 'social_media.facebook.post.test_post',
                 callback: function(r) {
-                    if (r.message) {
-                        if (r.message.success) {
-                            frappe.msgprint({
-                                title: __('Success'),
-                                indicator: 'green',
-                                message: r.message.message
-                            });
-                        } else {
-                            frappe.msgprint({
-                                title: __('Error'),
-                                indicator: 'red',
-                                message: r.message.error
-                            });
-                        }
+                    if (r.message && r.message.success) {
+                        frappe.msgprint({
+                            title: __('Success'),
+                            indicator: 'green',
+                            message: r.message.message
+                        });
+                    } else if (r.message) {
+                        frappe.msgprint({
+                            title: __('Error'),
+                            indicator: 'red',
+                            message: r.message.error || __('Test post failed')
+                        });
                     }
                 }
             });
-        }, 'Facebook').addClass('btn-success');
+        }).addClass('btn-success');
         
-        // Refresh Token button
         frm.add_custom_button(__('Refresh Token'), function() {
             frappe.call({
                 method: 'social_media.facebook.doctype.facebook_settings.facebook_settings.refresh_token',
                 callback: function(r) {
-                    if (r.message) {
-                        if (r.message.success) {
-                            frappe.msgprint({
-                                title: __('Success'),
-                                indicator: 'green',
-                                message: r.message.message
-                            });
-                        } else {
-                            frappe.msgprint({
-                                title: __('Error'),
-                                indicator: 'red',
-                                message: r.message.message
-                            });
-                        }
+                    if (r.message && r.message.success) {
+                        frappe.msgprint({
+                            title: __('Success'),
+                            indicator: 'green',
+                            message: r.message.message
+                        });
+                    } else if (r.message) {
+                        frappe.msgprint({
+                            title: __('Notice'),
+                            indicator: 'orange',
+                            message: r.message.message
+                        });
                     }
                 }
             });
-        }, 'Facebook').addClass('btn-warning');
+        }).addClass('btn-warning');
     }
 }
 
@@ -400,8 +350,6 @@ $(document).ready(function() {
             message: 'Facebook connected successfully!',
             indicator: 'green'
         }, 5);
-        
-        // Remove the parameter from URL
         window.history.replaceState({}, document.title, window.location.pathname);
     } else if (oauth === 'error') {
         frappe.show_alert({

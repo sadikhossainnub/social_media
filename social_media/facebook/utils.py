@@ -14,6 +14,21 @@ def get_settings():
     return frappe.get_doc("Facebook Settings")
 
 
+def get_graph_api_version():
+    """Get configured Graph API Version from Facebook Settings (defaults to v21.0)."""
+    try:
+        settings = get_settings()
+        ver = getattr(settings, "graph_api_version", None) or "v21.0"
+        ver = str(ver).strip().lower()
+        if not ver.startswith("v"):
+            ver = f"v{ver}"
+        if "." not in ver:
+            ver = f"{ver}.0"
+        return ver
+    except Exception:
+        return "v21.0"
+
+
 def is_connected():
     """Check if Facebook is connected."""
     settings = get_settings()
@@ -40,7 +55,7 @@ def make_graph_request(endpoint, method="GET", params=None, data=None):
         return None
     
     # Base URL
-    base_url = "https://graph.facebook.com/v18.0"
+    base_url = f"https://graph.facebook.com/{get_graph_api_version()}"
     
     # Default params
     if params is None:
@@ -125,7 +140,7 @@ def exchange_code_for_token(code):
         "code": code
     }
     
-    url = "https://graph.facebook.com/v18.0/oauth/access_token"
+    url = f"https://graph.facebook.com/{get_graph_api_version()}/oauth/access_token"
     
     try:
         response = requests.get(url, params=params, timeout=30)
@@ -164,7 +179,7 @@ def exchange_short_lived_token(long_lived=False):
         "fb_exchange_token": settings.user_access_token
     }
     
-    url = "https://graph.facebook.com/v18.0/oauth/access_token"
+    url = f"https://graph.facebook.com/{get_graph_api_version()}/oauth/access_token"
     
     try:
         response = requests.get(url, params=params, timeout=30)
@@ -491,7 +506,7 @@ def get_lead_form_details(form_id, access_token=None):
         "fields": "id,name,created_time,updated_time,questions,lead_gen_data"
     }
     
-    url = f"https://graph.facebook.com/v18.0/{form_id}"
+    url = f"https://graph.facebook.com/{get_graph_api_version()}/{form_id}"
     
     try:
         response = requests.get(url, params=params, timeout=30)
@@ -539,7 +554,7 @@ def get_lead_form_leads(form_id, access_token=None, limit=100):
         "fields": "id,created_time,field_data,ad_name,campaign_name,ad_id,campaign_id"
     }
     
-    url = f"https://graph.facebook.com/v18.0/{form_id}/leads"
+    url = f"https://graph.facebook.com/{get_graph_api_version()}/{form_id}/leads"
     
     try:
         response = requests.get(url, params=params, timeout=30)
@@ -558,3 +573,91 @@ def get_lead_form_leads(form_id, access_token=None, limit=100):
     except Exception as e:
         frappe.log_error(f"Lead form leads fetch error: {str(e)}", "Facebook Integration")
         return None
+
+
+@frappe.whitelist()
+def clear_all_app_data(include_settings=True):
+    """
+    Clear all data for the Social Media app (Facebook & WhatsApp).
+    
+    Args:
+        include_settings (bool): If True, also resets/deletes settings and credentials.
+    
+    Returns:
+        dict: Summary of deleted counts per doctype.
+    """
+    if frappe.session.user != "Administrator" and "System Manager" not in frappe.get_roles():
+        frappe.throw("Only System Manager or Administrator can clear app data.")
+
+    doctypes_to_clear = [
+        "Facebook Message Log",
+        "Facebook Messenger Chat",
+        "Facebook Post Log",
+        "Facebook Post Image",
+        "Facebook Post",
+        "Facebook Lead Form Field Mapping",
+        "Facebook Lead Form",
+        "Facebook Lead",
+        "Facebook Comment",
+        "Facebook AI Comment Reply",
+        "Facebook Smart Response",
+        "Facebook Content Calendar",
+        "Facebook Auto Post Publisher",
+        "Facebook Auto Reply",
+        "Facebook Media Library",
+        "Facebook Notification",
+        "Facebook API Log",
+        "Facebook Ad",
+        "Facebook Ad Account",
+        "Facebook Ad Campaign",
+        "Facebook Ad Set",
+        "Facebook Insight",
+        "Facebook Team Role",
+        "WhatsApp Message Log",
+        "WhatsApp Chat",
+        "WhatsApp Notification",
+        "Scheduled WhatsApp Message",
+        "Scheduled WhatsApp Message Employee",
+    ]
+
+    if include_settings:
+        doctypes_to_clear.extend([
+            "Facebook Page",
+            "Facebook Settings",
+            "WhatsApp Instance",
+            "WhatsApp Settings"
+        ])
+
+    deleted_summary = {}
+
+    for dt in doctypes_to_clear:
+        try:
+            if not frappe.db.exists("DocType", dt):
+                deleted_summary[dt] = "DocType not installed"
+                continue
+
+            meta = frappe.get_meta(dt)
+            if meta.issingle:
+                # Single DocTypes store key-value pairs in tabSingles
+                frappe.db.sql("DELETE FROM `tabSingles` WHERE `doctype` = %s", dt)
+                deleted_summary[dt] = "Reset (Single DocType)"
+            else:
+                table_name = f"tab{dt}"
+                if frappe.db.table_exists(table_name):
+                    count = frappe.db.sql(f"SELECT COUNT(*) FROM `{table_name}`")[0][0]
+                    if count > 0:
+                        frappe.db.sql(f"TRUNCATE TABLE `{table_name}`")
+                    deleted_summary[dt] = count
+                else:
+                    deleted_summary[dt] = "Table not found in DB"
+        except Exception as e:
+            frappe.log_error(f"Error clearing {dt}: {str(e)}", "Clear App Data")
+            deleted_summary[dt] = f"Error: {str(e)}"
+
+    frappe.db.commit()
+    return {
+        "status": "success",
+        "message": "Social Media App data cleared successfully.",
+        "summary": deleted_summary
+    }
+

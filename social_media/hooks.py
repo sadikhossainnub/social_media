@@ -26,9 +26,9 @@ app_license = "mit"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/social_media/css/social_media.css"
-app_include_js = [
-	"whatsapp/public/whatsapp_bubble_chat.js"
-]
+# app_include_js = []
+
+
 
 # include js, css files in header of web template
 # web_include_css = "/assets/social_media/css/social_media.css"
