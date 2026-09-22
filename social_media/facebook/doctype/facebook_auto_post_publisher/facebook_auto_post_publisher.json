@@ -7,6 +7,7 @@
  "document_type": "Document",
  "editable_grid": 1,
  "engine": "InnoDB",
+ "is_submittable": 1,
  "field_order": [
   "facebook_page",
   "post_section",

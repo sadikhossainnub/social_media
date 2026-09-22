@@ -7,6 +7,23 @@ from social_media.facebook.graph_client import FacebookGraphClient
 
 class FacebookAutoPostPublisher(Document):
 	"""Handles automatic and scheduled post publishing"""
+	facebook_page: str
+	facebook_post: str | None
+	post_content: str | None
+	post_image: str | None
+	variant_b_content: str | None
+	variant_b_image: str | None
+	winning_variant: str | None
+	schedule_type: str
+	schedule_datetime: datetime | str | None
+	suggested_best_time: datetime | str | None
+	target_timezone: str
+	content_calendar: str | None
+	publish_status: str
+	published_datetime: datetime | str | None
+	published_post_id: str | None
+	auto_analyze_engagement: int | bool
+	notify_on_publish: int | bool
 
 	def validate(self):
 		"""Validate post publisher configuration"""
@@ -23,8 +40,10 @@ class FacebookAutoPostPublisher(Document):
 		else:
 			self._schedule_for_publishing()
 
+	@frappe.whitelist()
 	def publish_now(self):
 		"""Publish the post immediately"""
+		import os
 		try:
 			# Get post content (check A/B testing winning variant)
 			content = self.post_content
@@ -34,40 +53,61 @@ class FacebookAutoPostPublisher(Document):
 				content = self.variant_b_content
 				image = self.variant_b_image or self.post_image
 
-			# Init client
+			# Clean HTML formatting from Text Editor field
+			clean_content = frappe.utils.strip_html(str(content or "")).strip() if content else ""
+
+			# Init Graph API client
 			client = FacebookGraphClient(page_id=self.facebook_page)
 			
 			# Call Graph API to create post
 			res = None
 			if image:
-				res = client.create_photo_post(content, image_url=image)
+				if image.startswith(("http://", "https://")):
+					res = client.create_photo_post(clean_content, image_url=image)
+				else:
+					site_file_path = frappe.get_site_path("public", image.lstrip("/"))
+					if os.path.exists(site_file_path):
+						with open(site_file_path, "rb") as img_file:
+							res = client.create_photo_post(clean_content, image_file=img_file)
+					else:
+						full_url = frappe.utils.get_url(image)
+						res = client.create_photo_post(clean_content, image_url=full_url)
 			else:
-				res = client.create_page_post(content)
+				res = client.create_page_post(clean_content)
 
 			if res and "id" in res:
-				self.publish_status = "Published"
-				self.published_datetime = datetime.now()
-				self.published_post_id = res["id"]
+				published_id = res["id"]
+				now_dt = datetime.now()
 				
-				# Log the published post to Facebook Post Doctype
-				post_doc = frappe.get_doc({
-					"doctype": "Facebook Post",
-					"post_id": res["id"],
-					"page": self.facebook_page,
-					"message": content,
-					"permalink_url": f"https://facebook.com/{res['id']}",
-					"created_time": datetime.now()
-				})
-				post_doc.insert(ignore_permissions=True)
+				# Log/create entry in Facebook Post Doctype if not already present
+				fb_post_name = None
+				if frappe.db.exists("Facebook Post", published_id):
+					fb_post_name = published_id
+				else:
+					post_doc = frappe.get_doc({
+						"doctype": "Facebook Post",
+						"post_id": published_id,
+						"page": self.facebook_page,
+						"message": clean_content,
+						"permalink_url": f"https://facebook.com/{published_id}",
+						"created_time": now_dt
+					})
+					post_doc.insert(ignore_permissions=True)
+					fb_post_name = post_doc.name
 				
 				# Update content calendar status
 				if self.content_calendar:
 					frappe.db.set_value("Facebook Content Calendar", self.content_calendar, {
 						"status": "Published",
-						"post": post_doc.name
+						"post": fb_post_name
 					})
 				
-				self.save()
+				# Safely update database values on current doc
+				self.db_set("publish_status", "Published")
+				self.db_set("published_datetime", now_dt)
+				self.db_set("published_post_id", published_id)
+				if not self.facebook_post and fb_post_name:
+					self.db_set("facebook_post", fb_post_name)
 				
 				# Notify admin if configured
 				if self.notify_on_publish:
@@ -77,16 +117,15 @@ class FacebookAutoPostPublisher(Document):
 				if self.auto_analyze_engagement:
 					self._schedule_engagement_analysis()
 				
-				frappe.msgprint(f"Post published successfully! ID: {res['id']}")
+				frappe.msgprint(f"Post published successfully! ID: {published_id}", alert=True)
 				return True
 			else:
-				raise Exception("Failed to publish - no ID returned from Graph API")
+				raise Exception("Failed to publish - no valid ID returned from Facebook Graph API")
 		
 		except Exception as e:
-			self.publish_status = "Failed"
+			self.db_set("publish_status", "Failed")
 			if self.content_calendar:
 				frappe.db.set_value("Facebook Content Calendar", self.content_calendar, "status", "Failed")
-			self.save()
 			frappe.log_error(f"Error publishing post: {str(e)}", "Facebook Auto Post Publisher")
 			frappe.throw(f"Failed to publish post: {str(e)}")
 
@@ -155,11 +194,12 @@ class FacebookAutoPostPublisher(Document):
 			}
 			
 			subject = f"[Facebook] {action_text.get(action, 'Post Action')} - {self.facebook_page}"
+			content_snippet = str(self.post_content)[:100] if self.post_content else 'N/A'
 			message = f"""
 Post has been {action}:
 
 Page: {self.facebook_page}
-Content: {self.post_content[:100] if self.post_content else 'N/A'}...
+Content: {content_snippet}...
 Status: {self.publish_status}
 Time: {self.published_datetime or self.schedule_datetime}
 
@@ -192,7 +232,8 @@ def analyze_post_engagement(post_id, doc_name):
 	"""
 	try:
 		doc = frappe.get_doc("Facebook Auto Post Publisher", doc_name)
-		client = FacebookGraphClient(page_id=doc.facebook_page)
+		page_id = getattr(doc, "facebook_page", None)
+		client = FacebookGraphClient(page_id=page_id)
 		insights = client.get_post_insights(post_id)
 		
 		likes = 0
@@ -233,7 +274,7 @@ def process_scheduled_posts():
 		
 		for post in scheduled_posts:
 			try:
-				doc = frappe.get_doc("Facebook Auto Post Publisher", post.name)
+				doc: FacebookAutoPostPublisher = frappe.get_doc("Facebook Auto Post Publisher", post.name)  # type: ignore
 				doc.publish_now()
 				frappe.db.commit()
 			except Exception as e:

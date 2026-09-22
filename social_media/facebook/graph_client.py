@@ -68,8 +68,14 @@ class FacebookGraphClient:
 	def page_id(self):
 		"""Resolve page ID."""
 		if self._page_id:
+			try:
+				page_doc = frappe.get_doc("Facebook Page", self._page_id)
+				if getattr(page_doc, "page_id", None):
+					return page_doc.page_id
+			except Exception:
+				pass
 			return self._page_id
-		return self.settings.page_id
+		return getattr(self.settings, "page_id", None)
 
 	@property
 	def access_token(self):
@@ -221,15 +227,19 @@ class FacebookGraphClient:
 					response_body = {"raw": response.text[:2000]}
 
 				# Check for errors
-				if response.status_code == 200 and "error" not in response_body:
+				if response.status_code == 200 and isinstance(response_body, dict) and "error" not in response_body:
 					# Success — log and return
 					self._log_api_call(url, method, params, data, response_status, response_body, None, duration_ms)
 					return response_body
 
 				# Handle Facebook API errors
-				fb_error = response_body.get("error", {})
-				error_code = fb_error.get("code", 0)
-				error_message = fb_error.get("message", f"HTTP {response.status_code}")
+				fb_error = response_body.get("error", {}) if isinstance(response_body, dict) else {}
+				if isinstance(fb_error, dict):
+					error_code = fb_error.get("code", 0)
+					error_message = fb_error.get("message", f"HTTP {response.status_code}")
+				else:
+					error_code = 0
+					error_message = str(fb_error)
 
 				# Non-retryable errors
 				if error_code in (10, 100, 190, 200, 803):
