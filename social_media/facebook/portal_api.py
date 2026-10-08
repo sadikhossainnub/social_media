@@ -606,11 +606,19 @@ def send_message(page_id=None, recipient_id=None, message_text=None, page=None, 
 	res = client.send_message(actual_recipient_id, actual_message_text)
 	
 	if res and ("message_id" in res or "recipient_id" in res or res.get("success")):
-		page_info = client.get_page_info() or {}
+		cust = frappe.get_all(
+			"Facebook Messenger Chat",
+			filters={"conversation_id": f"t_{actual_recipient_id}", "direction": "Incoming"},
+			fields=["sender_name"],
+			order_by="creation desc",
+			limit=1,
+		)
+		customer_name = cust[0].sender_name if (cust and cust[0].sender_name and cust[0].sender_name not in ("Paperware Factory", "Page Admin", "Page")) else "Customer"
+
 		msg_doc = frappe.get_doc({
 			"doctype": "Facebook Messenger Chat",
-			"sender_id": str(client.page_id or actual_page_id),
-			"sender_name": page_info.get("name", "Page"),
+			"sender_id": str(actual_recipient_id),
+			"sender_name": customer_name,
 			"page": str(actual_page_id),
 			"conversation_id": f"t_{actual_recipient_id}",
 			"direction": "Outgoing",
@@ -1197,10 +1205,19 @@ def send_message_internal(page_id, recipient_id, message_text):
 	res = client.send_message(recipient_id, message_text)
 	
 	if res and "message_id" in res:
+		cust = frappe.get_all(
+			"Facebook Messenger Chat",
+			filters={"conversation_id": f"t_{recipient_id}", "direction": "Incoming"},
+			fields=["sender_name"],
+			order_by="creation desc",
+			limit=1,
+		)
+		customer_name = cust[0].sender_name if (cust and cust[0].sender_name and cust[0].sender_name not in ("Paperware Factory", "Page Admin", "Page")) else "Customer"
+
 		chat_doc = frappe.get_doc({
 			"doctype": "Facebook Messenger Chat",
-			"sender_id": recipient_id,
-			"sender_name": "Page Admin",
+			"sender_id": str(recipient_id),
+			"sender_name": customer_name,
 			"page": page_id or "all",
 			"conversation_id": f"t_{recipient_id}",
 			"message": message_text,

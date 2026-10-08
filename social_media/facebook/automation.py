@@ -184,6 +184,9 @@ def process_facebook_webhook(data):
             # Process messages
             for messaging in entry.get("messaging", []):
                 if "message" in messaging and "postback" not in messaging:
+                    if messaging["message"].get("is_echo"):
+                        continue
+
                     message_data = {
                         "message_id": messaging["message"].get("mid"),
                         "sender_id": messaging["sender"]["id"],
