@@ -561,16 +561,19 @@ def get_messages(conversation_id, page=1, limit=50):
 
 
 @frappe.whitelist()
-def send_message(page_id, recipient_id, message_text):
+def send_message(page_id=None, recipient_id=None, message_text=None, page=None, message=None, **kwargs):
 	"""Send a message to a customer via Messenger."""
-	if not message_text or not recipient_id:
+	actual_page_id = page_id or page
+	actual_message_text = message_text or message
+	actual_recipient_id = recipient_id
+
+	if not actual_message_text or not actual_recipient_id:
 		return api_response(success=False, message="Message text and recipient ID are required", status_code=400)
 
 	# 1. Resolve actual page_id if page_id is None, 'all', 'undefined', or doc name
-	actual_page_id = page_id
 	if not actual_page_id or str(actual_page_id).strip().lower() in ("all", "undefined", "null", "none", ""):
 		# Try to find page from existing chat record with this recipient
-		sample = frappe.get_all("Facebook Messenger Chat", filters={"conversation_id": f"t_{recipient_id}"}, fields=["page"], limit=1)
+		sample = frappe.get_all("Facebook Messenger Chat", filters={"conversation_id": f"t_{actual_recipient_id}"}, fields=["page"], limit=1)
 		if sample and sample[0].page:
 			actual_page_id = sample[0].page
 		else:
@@ -585,7 +588,7 @@ def send_message(page_id, recipient_id, message_text):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
 	client = FacebookGraphClient(page_id=actual_page_id)
-	res = client.send_message(recipient_id, message_text)
+	res = client.send_message(actual_recipient_id, actual_message_text)
 	
 	if res and ("message_id" in res or "recipient_id" in res or res.get("success")):
 		page_info = client.get_page_info() or {}
@@ -594,9 +597,9 @@ def send_message(page_id, recipient_id, message_text):
 			"sender_id": str(client.page_id or actual_page_id),
 			"sender_name": page_info.get("name", "Page"),
 			"page": str(actual_page_id),
-			"conversation_id": f"t_{recipient_id}",
+			"conversation_id": f"t_{actual_recipient_id}",
 			"direction": "Outgoing",
-			"message": message_text,
+			"message": actual_message_text,
 			"timestamp": datetime.now(),
 			"is_read": 1
 		})
