@@ -35,3 +35,24 @@ class TestFacebookPortalAPI(unittest.TestCase):
 		res = get_conversations(page_id=self.test_page.name)
 		self.assertTrue(res["success"])
 		self.assertEqual(len(res["data"]), 0)
+
+	def test_detect_complaint_multilingual(self):
+		from social_media.facebook.ai_agent import detect_complaint
+		
+		# Test Bangla complaint
+		is_comp, priority, _ = detect_complaint("প্রোডাক্টটি ভাঙা পেয়েছি, সমস্যা আছে")
+		self.assertTrue(is_comp)
+		self.assertEqual(priority, "High")
+
+		# Test Banglish complaint
+		is_comp, priority, _ = detect_complaint("bhai product nosto r vanga kharap dichen")
+		self.assertTrue(is_comp)
+
+		# Test English query (not complaint)
+		is_comp, _, _ = detect_complaint("What is the price of this item?")
+		self.assertFalse(is_comp)
+
+	def test_get_sender_name_non_blocking(self):
+		from social_media.facebook.api import get_sender_name
+		name = get_sender_name("non_existent_psid_12345")
+		self.assertEqual(name, "Facebook User")

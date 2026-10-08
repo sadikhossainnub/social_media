@@ -251,3 +251,144 @@ def publish_ai_reply(reply_name):
 		return True
 
 	return False
+
+
+def process_incoming_messenger_message(chat_name):
+	"""
+	Asynchronously process incoming messenger message for:
+	1. Complaint detection & automatic tagging/sorting into Complaint Management.
+	2. Multi-lingual (Bangla, Banglish, English) auto-response.
+	3. Image Recognition for product matching against ERPNext catalog.
+	"""
+	try:
+		chat_doc = frappe.get_doc("Facebook Messenger Chat", chat_name)
+	except frappe.DoesNotExistError:
+		return
+
+	if chat_doc.direction != "Incoming":
+		return
+
+	settings = frappe.get_single("Facebook Settings")
+	
+	# Extract message attachments & text
+	attachments = []
+	if chat_doc.attachments:
+		try:
+			attachments = json.loads(chat_doc.attachments) if isinstance(chat_doc.attachments, str) else chat_doc.attachments
+		except Exception:
+			attachments = []
+
+	image_urls = []
+	if isinstance(attachments, list):
+		for att in attachments:
+			if isinstance(att, dict) and (att.get("type") == "image" or "image" in str(att.get("type", ""))) and att.get("payload", {}).get("url"):
+				image_urls.append(att["payload"]["url"])
+
+	text = (chat_doc.message or "").strip()
+
+	# 1. Complaint Detection & Sorting
+	is_complaint, priority, detected_reason = detect_complaint(text)
+	if is_complaint:
+		chat_doc.is_complaint = 1
+		chat_doc.complaint_status = "Open"
+		chat_doc.priority = priority or "High"
+		tags = (chat_doc.tags or "").split(",") if chat_doc.tags else []
+		if "Complaint" not in tags:
+			tags.append("Complaint")
+		chat_doc.tags = ",".join([t.strip() for t in tags if t.strip()])
+		chat_doc.save(ignore_permissions=True)
+		frappe.db.commit()
+
+		# Publish urgent complaint alert over Socket.IO
+		from social_media.facebook.realtime import publish_complaint_alert
+		publish_complaint_alert(chat_doc)
+
+	# 2. Check if Auto Reply is enabled
+	auto_reply_enabled = getattr(settings, "enable_ai_messenger_reply", 1)
+	if not auto_reply_enabled:
+		return
+
+	# 3. Product Image Recognition or Multi-lingual Text Reply
+	reply_text = None
+
+	if image_urls:
+		reply_text = recognize_product_image_and_get_reply(image_urls[0], text)
+	
+	if not reply_text and text:
+		reply_text = generate_multilingual_chat_reply(text, chat_doc.sender_name)
+
+	# Send reply if generated
+	if reply_text and chat_doc.sender_id:
+		try:
+			from social_media.facebook.portal_api import send_message_internal
+			send_message_internal(chat_doc.page, chat_doc.sender_id, reply_text)
+		except Exception as e:
+			frappe.log_error(f"Error sending AI auto-reply: {str(e)}", "Facebook AI Agent")
+
+
+def detect_complaint(text):
+	"""
+	Detect if customer text indicates a complaint, dissatisfaction, or problem.
+	Supports Bangla, Banglish, and English keywords.
+	"""
+	if not text:
+		return False, "Medium", ""
+
+	text_lower = text.lower()
+	complaint_keywords = [
+		"complaint", "complain", "problem", "damaged", "broken", "refund", "defective", "bad quality",
+		"horrible", "fraud", "scam", "worst", "nosto", "vanga", "kharap", "somossa", "baje", "ovijog",
+		"সমস্যা", "ভাঙা", "নষ্ট", "খারাপ", "অভিযোগ", "রিফান্ড", "প্রতারণা", "বাজে", "পাব না", "পাই নাই", "দেয় নাই"
+	]
+
+	matched = [kw for kw in complaint_keywords if kw in text_lower]
+	if matched:
+		high_priority_kws = ["fraud", "scam", "broken", "vanga", "ভাঙা", "প্রতারণা", "refund", "রিফান্ড"]
+		priority = "High" if any(kw in text_lower for kw in high_priority_kws) else "Medium"
+		return True, priority, f"Matched keywords: {', '.join(matched)}"
+
+	return False, "Low", ""
+
+
+def recognize_product_image_and_get_reply(image_url, user_text=""):
+	"""
+	Query active ERPNext Items and use AI to match product image with stock items.
+	"""
+	try:
+		items = frappe.get_all("Item", fields=["item_code", "item_name", "standard_rate", "description"], limit=20, ignore_permissions=True)
+		if not items:
+			return None
+
+		items_summary = "\n".join([f"- Item: {i['item_name']} (Code: {i['item_code']}), Rate: {i['standard_rate']} BDT, Desc: {i.get('description', '')}" for i in items[:15]])
+
+		system_instruction = (
+			"You are an AI Product Visual Matcher for an e-commerce store. "
+			"Look at the customer's product image URL or query and match it with the available ERPNext items list below.\n\n"
+			f"ERPNext Products Catalog:\n{items_summary}\n\n"
+			"Respond politely in customer's detected language (Bangla, Banglish, or English). "
+			"Provide exact product name, price (BDT), and ask if they would like to place an order."
+		)
+
+		prompt = f"Product Image URL: {image_url}\nCustomer Note: {user_text}"
+		reply = call_llm(prompt, system_instruction)
+		return reply
+	except Exception as e:
+		frappe.log_error(f"Error in product image recognition: {str(e)}", "Facebook AI Vision")
+		return None
+
+
+def generate_multilingual_chat_reply(customer_message, sender_name="Customer"):
+	"""
+	Generate natural multi-lingual reply (Bangla, Banglish, or English) matching customer's language.
+	"""
+	system_instruction = (
+		"You are a friendly, helpful Facebook Messenger AI Assistant. "
+		"CRITICAL: Auto-detect the customer's language & script:\n"
+		"- If customer writes in Bangla Unicode (e.g., 'দাম কত?'), reply in clear, polite Bengali.\n"
+		"- If customer writes in Banglish (e.g., 'bhai price koto?'), reply in natural, friendly Banglish.\n"
+		"- If customer writes in English, reply in fluent English.\n"
+		"Keep answers concise, helpful, and polite."
+	)
+
+	prompt = f"Customer Name: {sender_name}\nCustomer Message: {customer_message}"
+	return call_llm(prompt, system_instruction)

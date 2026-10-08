@@ -16,7 +16,7 @@ def get_context(context):
 	permissions = {}
 
 	if is_admin:
-		pages = frappe.get_all("Facebook Page", fields=["name", "page_name", "profile_picture_url"], ignore_permissions=True)
+		pages = frappe.get_all("Facebook Page", fields=["name", "page_name", "profile_picture_url", "followers_count", "fan_count"], ignore_permissions=True)
 		for p in pages:
 			permissions[p.name] = {
 				"can_post": 1,
@@ -31,7 +31,7 @@ def get_context(context):
 			settings = frappe.get_single("Facebook Settings")
 			roles = settings.get("team_roles") or []
 			if not roles:
-				pages = frappe.get_all("Facebook Page", fields=["name", "page_name", "profile_picture_url"], ignore_permissions=True)
+				pages = frappe.get_all("Facebook Page", fields=["name", "page_name", "profile_picture_url", "followers_count", "fan_count"], ignore_permissions=True)
 				for p in pages:
 					permissions[p.name] = {
 						"can_post": 1,
@@ -57,40 +57,45 @@ def get_context(context):
 					pages = frappe.get_all(
 						"Facebook Page",
 						filters={"name": ["in", allowed_names]},
-						fields=["name", "page_name", "profile_picture_url"],
+						fields=["name", "page_name", "profile_picture_url", "followers_count", "fan_count"],
 						ignore_permissions=True
 					)
 		except Exception:
-			pages = frappe.get_all("Facebook Page", fields=["name", "page_name", "profile_picture_url"], ignore_permissions=True)
+			pages = frappe.get_all("Facebook Page", fields=["name", "page_name", "profile_picture_url", "followers_count", "fan_count"], ignore_permissions=True)
+
+	# Fallback: use Facebook Settings connected page if no Facebook Page records
+	if not pages:
+		try:
+			settings = frappe.get_single("Facebook Settings")
+			if settings.page_id:
+				pages = [{
+					"name": settings.page_id,
+					"page_name": settings.page_name or "Paperware Factory",
+					"profile_picture_url": "",
+					"followers_count": 0,
+					"fan_count": 0
+				}]
+				permissions[settings.page_id] = {
+					"can_post": 1,
+					"can_comment": 1,
+					"can_message": 1,
+					"can_ads": 1,
+					"can_insights": 1,
+					"can_settings": 1
+				}
+		except Exception:
+			pass
 
 	portal_data = {
 		"userFullName": frappe.utils.get_fullname(frappe.session.user),
 		"userEmail": frappe.session.user,
-		"csrfToken": frappe.local.session.data.csrf_token,
+		"csrfToken": frappe.local.session.data.csrf_token if frappe.local.session else "",
 		"pages": [dict(p) for p in pages],
 		"permissions": permissions,
 		"isAdmin": is_admin
 	}
 
-	# Read the static HTML file (no Jinja syntax inside)
-	html_path = os.path.join(
-		os.path.dirname(__file__),
-		"facebook_portal.html"
-	)
-
-	if not os.path.exists(html_path):
-		frappe.throw("Portal HTML file not found: facebook_portal.html")
-
-
-	with open(html_path, "r", encoding="utf-8") as f:
-		html = f.read()
-
-	# Inject server data as a JS global before </head>
-	portal_data_json = json.dumps(portal_data, ensure_ascii=False)
-	inject_script = f"<script>\nwindow.fbPortalData = {portal_data_json};\n</script>\n</head>"
-	html = html.replace("</head>", inject_script, 1)
-
-	# Serve raw HTML, bypassing Jinja2 entirely
-	frappe.local.response["type"] = "page"
-	frappe.local.response["page_content"] = html
 	context.no_cache = 1
+	context.safe_render = False
+	context.portal_data_json = json.dumps(portal_data, ensure_ascii=False, default=str)
+

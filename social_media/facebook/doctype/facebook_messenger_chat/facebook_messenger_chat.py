@@ -6,4 +6,10 @@ from frappe.model.document import Document
 
 
 class FacebookMessengerChat(Document):
-    pass
+	def after_insert(self):
+		try:
+			from social_media.facebook.realtime import publish_new_message
+			publish_new_message(self)
+		except Exception:
+			pass
+

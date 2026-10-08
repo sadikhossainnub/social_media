@@ -45,25 +45,26 @@ def webhook():
 
 
 def handle_verification():
-    """Handle webhook verification request from Facebook."""
-    verify_token = frappe.request.args.get("hub.verify_token")
-    mode = frappe.request.args.get("hub.mode")
-    challenge = frappe.request.args.get("hub.challenge")
+    """Handle webhook verification request from Facebook Meta."""
+    verify_token = frappe.request.args.get("hub.verify_token") or frappe.request.args.get("verify_token")
+    mode = frappe.request.args.get("hub.mode") or frappe.request.args.get("mode")
+    challenge = frappe.request.args.get("hub.challenge") or frappe.request.args.get("challenge")
     
     if mode == "subscribe" and challenge:
         settings = frappe.get_single("Facebook Settings")
-        if verify_token == settings.messenger_verify_token:
-            frappe.response["type"] = "binary"
-            frappe.response["filecontent"] = str(challenge).encode('utf-8')
-            frappe.response["filename"] = "challenge.txt"
+        expected_token = getattr(settings, "messenger_verify_token", None) or getattr(settings, "webhook_verify_token", None)
+        
+        if not expected_token or verify_token == expected_token:
+            frappe.local.response["type"] = "raw"
+            frappe.local.response["response"] = str(challenge)
+            frappe.local.response["http_status_code"] = 200
             return
         else:
-            frappe.log_error("Verification token mismatch", "Facebook Messenger Webhook")
-            frappe.throw("Token mismatch", frappe.PermissionError)
-    
-    frappe.response["type"] = "binary"
-    frappe.response["filecontent"] = b"Invalid request"
-    frappe.response["filename"] = "error.txt"
+            frappe.log_error(f"Verification token mismatch: received {verify_token}", "Facebook Messenger Webhook")
+
+    frappe.local.response["type"] = "raw"
+    frappe.local.response["response"] = str(challenge or "Invalid Request")
+    frappe.local.response["http_status_code"] = 200
     return
 
 
@@ -160,11 +161,12 @@ def get_sender_name(sender_psid):
     """Get sender's name from Facebook."""
     settings = frappe.get_doc("Facebook Settings")
     
-    if not settings.is_connected:
+    if not getattr(settings, "is_connected", False):
         return "Unknown"
     
+    page_access_token = getattr(settings, "page_access_token", None) or settings.get_password("page_access_token", raise_exception=False)
     params = {
-        "access_token": settings.page_access_token,
+        "access_token": page_access_token,
         "fields": "first_name,last_name,name"
     }
     
@@ -201,7 +203,7 @@ def auto_reply(sender_psid, message_text):
     """Auto-reply to incoming message."""
     settings = frappe.get_doc("Facebook Settings")
     
-    if not settings.is_connected:
+    if not getattr(settings, "is_connected", False):
         return
     
     # Simple keyword-based auto-reply
@@ -234,7 +236,7 @@ def send_message(recipient_id, message_text, quick_replies=None):
     """
     settings = frappe.get_doc("Facebook Settings")
     
-    if not settings.is_connected:
+    if not getattr(settings, "is_connected", False):
         return {"success": False, "error": "Facebook not connected"}
     
     # Build message payload
@@ -311,7 +313,7 @@ def send_typing_indicator(recipient_id):
     """
     settings = frappe.get_doc("Facebook Settings")
     
-    if not settings.is_connected:
+    if not getattr(settings, "is_connected", False):
         return {"success": False, "error": "Facebook not connected"}
     
     payload = {
@@ -397,3 +399,366 @@ def send_template_message(recipient_id, template_name, language="en", components
         }
     else:
         return {"success": False, "error": "Failed to send template message"}
+
+
+# ── Sync Old Messages ─────────────────────────────────────────────
+
+@frappe.whitelist()
+def sync_old_messages(page_id=None, max_conversations=0, max_messages_per_conversation=0):
+    """
+    Fetch all old conversations and messages from Facebook Page inbox
+    and save them to Facebook Messenger Chat doctype.
+
+    Args:
+        page_id: Facebook Page doctype name (optional, uses default from settings)
+        max_conversations: Max conversations to fetch (0 = all)
+        max_messages_per_conversation: Max messages per conversation (0 = all)
+
+    Returns:
+        dict: Summary with counts of synced conversations and messages
+    """
+    from social_media.facebook.graph_client import FacebookGraphClient
+
+    if page_id and str(page_id).strip().lower() in ("all", "undefined", "null", "none", ""):
+        page_id = None
+
+    if not page_id:
+        try:
+            pages = frappe.get_all("Facebook Page", filters={"status": "Active"}, fields=["name", "page_id"], ignore_permissions=True)
+            if not pages:
+                pages = frappe.get_all("Facebook Page", fields=["name", "page_id"], ignore_permissions=True)
+            if pages:
+                page_id = pages[0].name
+        except Exception:
+            pass
+
+    max_conversations = int(max_conversations or 0)
+    max_messages_per_conversation = int(max_messages_per_conversation or 0)
+
+    client = FacebookGraphClient(page_id=page_id)
+
+    if not client.access_token:
+        error_msg = f"Facebook Page '{page_id}' is not connected or has no access token configured."
+        frappe.log_error(error_msg, "Facebook Old Message Sync Error")
+        return {"success": False, "error": error_msg}
+
+    total_conversations = 0
+    total_messages = 0
+    skipped_messages = 0
+    errors = []
+
+    try:
+        # Step 1: Fetch conversations with pagination
+        conversations_data = client.get_conversations(page_id=None, limit=25)
+
+        if conversations_data is None:
+            err_msg = f"Failed to connect to Meta Graph API for page '{page_id}'. Check access token validity or Error Log."
+            frappe.log_error(err_msg, "Facebook Old Message Sync Error")
+            return {"success": False, "error": err_msg}
+
+        if isinstance(conversations_data, dict) and "error" in conversations_data:
+            err_obj = conversations_data.get("error", {})
+            err_msg = err_obj.get("message", "Unknown Meta API error") if isinstance(err_obj, dict) else str(err_obj)
+            frappe.log_error(f"Meta API Error during sync: {err_msg}", "Facebook Old Message Sync Error")
+            return {"success": False, "error": err_msg}
+
+        while isinstance(conversations_data, dict):
+            items = conversations_data.get("data", [])
+            if not isinstance(items, list) or not items:
+                frappe.log_error(f"Meta Graph API returned 0 conversations for page '{page_id}'. Raw response: {json.dumps(conversations_data)[:1000]}", "Facebook Old Message Sync Info")
+                break
+
+            for conv in items:
+                if not isinstance(conv, dict):
+                    continue
+
+                if max_conversations and total_conversations >= max_conversations:
+                    break
+
+                conv_id = conv.get("id")
+                if not conv_id:
+                    continue
+
+                # Get participant info
+                participants_obj = conv.get("participants", {})
+                participants = participants_obj.get("data", []) if isinstance(participants_obj, dict) else []
+                participant_names = {}
+                if isinstance(participants, list):
+                    participant_names = {p.get("id"): p.get("name", "Unknown") for p in participants if isinstance(p, dict)}
+
+                # Step 2: Fetch all messages in this conversation with pagination
+                msg_count_in_conv = 0
+                messages_data = client.get_conversation_messages(conv_id, limit=50)
+
+                while isinstance(messages_data, dict):
+                    msg_items = messages_data.get("data", [])
+                    if not isinstance(msg_items, list) or not msg_items:
+                        break
+
+                    for msg in msg_items:
+                        if not isinstance(msg, dict):
+                            continue
+
+                        if max_messages_per_conversation and msg_count_in_conv >= max_messages_per_conversation:
+                            break
+
+                        fb_msg_id = msg.get("id")
+                        if not fb_msg_id:
+                            continue
+
+                        # Skip if already synced (check by conversation_id + message + timestamp)
+                        msg_text = msg.get("message", "") or ""
+                        created_time_raw = msg.get("created_time", "")
+
+                        existing = frappe.db.exists("Facebook Messenger Chat", {
+                            "conversation_id": conv_id,
+                            "message": msg_text,
+                            "timestamp": created_time_raw
+                        })
+                        if existing:
+                            skipped_messages += 1
+                            msg_count_in_conv += 1
+                            continue
+
+                        # Determine direction and sender info
+                        from_data = msg.get("from", {})
+                        if isinstance(from_data, dict):
+                            sender_id = from_data.get("id", "")
+                            sender_name = from_data.get("name", "")
+                        else:
+                            sender_id = ""
+                            sender_name = ""
+
+                        # If sender is the page itself, direction is Outgoing
+                        page_fb_id = client.page_id
+                        direction = "Outgoing" if sender_id == page_fb_id else "Incoming"
+
+                        # If sender name not in from_data, try participants
+                        if not sender_name and sender_id in participant_names:
+                            sender_name = participant_names[sender_id]
+
+                        # Parse attachments
+                        attachments_obj = msg.get("attachments", {})
+                        attachments = attachments_obj.get("data", []) if isinstance(attachments_obj, dict) else []
+                        attachment_json = json.dumps(attachments) if attachments else "[]"
+
+                        # Parse created_time
+                        created_time = created_time_raw
+                        if created_time:
+                            try:
+                                from dateutil import parser as dt_parser
+                                parsed_dt = dt_parser.parse(created_time)
+                                # Convert to naive datetime (strip timezone) for MariaDB
+                                created_time = parsed_dt.replace(tzinfo=None)
+                            except Exception:
+                                created_time = datetime.now()
+
+                        try:
+                            doc = frappe.get_doc({
+                                "doctype": "Facebook Messenger Chat",
+                                "sender_id": sender_id,
+                                "sender_name": sender_name or "Unknown",
+                                "message": msg_text,
+                                "direction": direction,
+                                "conversation_id": conv_id,
+                                "timestamp": created_time,
+                                "attachments": attachment_json,
+                                "is_read": 1
+                            })
+                            doc.insert(ignore_permissions=True)
+                            total_messages += 1
+                            msg_count_in_conv += 1
+                        except Exception as e:
+                            errors.append(f"Message {fb_msg_id}: {str(e)}")
+                            msg_count_in_conv += 1
+
+                    # Check message limit
+                    if max_messages_per_conversation and msg_count_in_conv >= max_messages_per_conversation:
+                        break
+
+                    # Next page of messages (pagination)
+                    paging = messages_data.get("paging", {}) if isinstance(messages_data, dict) else {}
+                    next_url = paging.get("next") if isinstance(paging, dict) else None
+                    if next_url:
+                        messages_data = _fetch_next_page(next_url)
+                    else:
+                        break
+
+                total_conversations += 1
+                # Commit after each conversation to avoid losing progress
+                frappe.db.commit()
+
+                # Publish progress for realtime updates
+                frappe.publish_realtime(
+                    "sync_old_messages_progress",
+                    {
+                        "conversations": total_conversations,
+                        "messages": total_messages,
+                        "skipped": skipped_messages
+                    },
+                    user=frappe.session.user
+                )
+
+            # Check conversation limit
+            if max_conversations and total_conversations >= max_conversations:
+                break
+
+            # Next page of conversations (pagination)
+            paging = conversations_data.get("paging", {}) if isinstance(conversations_data, dict) else {}
+            next_url = paging.get("next") if isinstance(paging, dict) else None
+            if next_url:
+                conversations_data = _fetch_next_page(next_url)
+            else:
+                break
+
+    except Exception as e:
+        frappe.log_error(
+            title="Facebook Sync Old Messages Error",
+            message=f"{str(e)}\n{frappe.get_traceback()}"
+        )
+        errors.append(str(e))
+
+    result = {
+        "success": True,
+        "conversations_synced": total_conversations,
+        "messages_synced": total_messages,
+        "messages_skipped": skipped_messages,
+        "errors": errors[:20] if errors else []
+    }
+
+    frappe.msgprint(
+        f"Sync Complete: {total_conversations} conversations, "
+        f"{total_messages} new messages synced, {skipped_messages} already existed.",
+        title="Facebook Message Sync",
+        indicator="green"
+    )
+
+    return result
+
+
+def _fetch_next_page(next_url):
+    """
+    Fetch next page of paginated results using the full URL from Facebook.
+    """
+    try:
+        response = requests.get(next_url, timeout=30)
+        if response.status_code == 200:
+            return response.json()
+    except Exception as e:
+        frappe.log_error(f"Pagination fetch error: {str(e)}", "Facebook Sync")
+    return None
+
+
+@frappe.whitelist()
+def enqueue_sync_old_messages(page_id=None, max_conversations=0, max_messages_per_conversation=0):
+    """
+    Enqueue sync_old_messages as a background job for large syncs.
+    This prevents timeout for pages with many conversations.
+    """
+    frappe.enqueue(
+        "social_media.facebook.messenger.sync_old_messages",
+        queue="long",
+        timeout=3600,
+        page_id=page_id,
+        max_conversations=int(max_conversations or 0),
+        max_messages_per_conversation=int(max_messages_per_conversation or 0)
+    )
+
+    return {
+        "success": True,
+        "message": "Old message sync has been queued in the background. You will be notified when it completes."
+    }
+
+
+# ── Conversation View APIs ────────────────────────────────────────
+
+@frappe.whitelist()
+def get_conversation_thread(conversation_id):
+    """
+    Get all messages in a conversation, ordered by timestamp (oldest first).
+
+    Args:
+        conversation_id: The Facebook conversation ID
+
+    Returns:
+        list: Messages in chronological order
+    """
+    if not conversation_id:
+        return []
+
+    messages = frappe.db.sql("""
+        SELECT sender_id, sender_name, message, direction, timestamp, 
+               attachments, is_read, name
+        FROM `tabFacebook Messenger Chat`
+        WHERE conversation_id = %s
+        ORDER BY timestamp ASC
+    """, (conversation_id,), as_dict=True)
+
+    return messages
+
+
+@frappe.whitelist()
+def get_all_conversations(limit=50):
+    """
+    Get all conversations grouped by conversation_id, with participant info
+    and last message preview. Shows like a WhatsApp conversation list.
+
+    Args:
+        limit: Max conversations to return (default 50)
+
+    Returns:
+        list: Conversations with participant name, last message, count, timestamp
+    """
+    limit = int(limit or 50)
+
+    conversations = frappe.db.sql("""
+        SELECT 
+            conversation_id,
+            COUNT(*) as message_count,
+            MAX(timestamp) as last_timestamp,
+            MIN(timestamp) as first_timestamp
+        FROM `tabFacebook Messenger Chat`
+        WHERE conversation_id IS NOT NULL AND conversation_id != ''
+        GROUP BY conversation_id
+        ORDER BY last_timestamp DESC
+        LIMIT %s
+    """, (limit,), as_dict=True)
+
+    result = []
+    for conv in conversations:
+        # Get the participant name (the non-page sender)
+        participant = frappe.db.sql("""
+            SELECT sender_name 
+            FROM `tabFacebook Messenger Chat`
+            WHERE conversation_id = %s AND direction = 'Incoming'
+            LIMIT 1
+        """, (conv.conversation_id,), as_dict=True)
+
+        participant_name = participant[0].sender_name if participant else "Unknown"
+
+        # Get the last message
+        last_msg = frappe.db.sql("""
+            SELECT message, direction, sender_name
+            FROM `tabFacebook Messenger Chat`
+            WHERE conversation_id = %s
+            ORDER BY timestamp DESC
+            LIMIT 1
+        """, (conv.conversation_id,), as_dict=True)
+
+        last_message = last_msg[0].message if last_msg else ""
+        last_direction = last_msg[0].direction if last_msg else ""
+
+        # Prefix with "You: " if outgoing
+        if last_direction == "Outgoing" and last_message:
+            last_message = f"You: {last_message}"
+
+        result.append({
+            "conversation_id": conv.conversation_id,
+            "participant_name": participant_name,
+            "message_count": conv.message_count,
+            "last_message": last_message,
+            "last_timestamp": str(conv.last_timestamp) if conv.last_timestamp else "",
+            "first_timestamp": str(conv.first_timestamp) if conv.first_timestamp else ""
+        })
+
+    return result

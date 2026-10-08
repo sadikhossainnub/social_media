@@ -13,6 +13,38 @@ from social_media.facebook.graph_client import FacebookGraphClient
 from social_media.facebook.insights import get_best_posting_time
 
 
+def resolve_page_ids(page_id=None):
+	"""
+	Given a page_id (which could be doc.name or numeric page_id),
+	returns a list of candidate strings to match against DB `page` columns.
+	If page_id is None, empty, 'all', 'undefined', or 'null', returns None.
+	"""
+	if not page_id or str(page_id).strip().lower() in ("all", "undefined", "null", "none", ""):
+		return None
+
+	candidate_ids = {str(page_id).strip()}
+	
+	try:
+		pages = frappe.get_all("Facebook Page", filters=[
+			["Facebook Page", "name", "=", page_id]
+		], fields=["name", "page_id"], ignore_permissions=True)
+		
+		if not pages:
+			pages = frappe.get_all("Facebook Page", filters=[
+				["Facebook Page", "page_id", "=", page_id]
+			], fields=["name", "page_id"], ignore_permissions=True)
+
+		for p in pages:
+			if p.get("name"):
+				candidate_ids.add(str(p.get("name")).strip())
+			if p.get("page_id"):
+				candidate_ids.add(str(p.get("page_id")).strip())
+	except Exception:
+		pass
+
+	return list(candidate_ids)
+
+
 def check_portal_permission(page_id=None, permission_type="can_view"):
 	"""
 	Check if the current logged-in user has permission for a specific page.
@@ -26,9 +58,11 @@ def check_portal_permission(page_id=None, permission_type="can_view"):
 	if not roles:
 		return True
 
+	page_ids = resolve_page_ids(page_id) if page_id else None
+
 	for role in roles:
 		if role.user == frappe.session.user:
-			if page_id and role.page != page_id:
+			if page_ids and role.page not in page_ids and role.page != page_id:
 				continue
 			# Check specific role permission
 			if permission_type == "can_post" and not role.can_post:
@@ -124,11 +158,27 @@ def get_pages():
 		ignore_permissions=True
 	)
 	
-	# Filter pages by user team role
 	allowed_pages = []
 	for p in pages:
 		if check_portal_permission(p.name, "can_view"):
 			allowed_pages.append(p)
+
+	if not allowed_pages:
+		try:
+			settings = frappe.get_single("Facebook Settings")
+			if settings.page_id:
+				allowed_pages.append({
+					"name": settings.page_id,
+					"page_id": settings.page_id,
+					"page_name": settings.page_name or "Paperware Factory",
+					"status": "Active" if settings.is_connected else "Inactive",
+					"page_category": "Business",
+					"followers_count": 0,
+					"fan_count": 0,
+					"profile_picture_url": ""
+				})
+		except Exception:
+			pass
 			
 	return api_response(success=True, data=allowed_pages)
 
@@ -146,12 +196,12 @@ def get_page_details(page_id):
 		# Update database stats
 		try:
 			doc = frappe.get_doc("Facebook Page", page_id)
-			doc.followers_count = info.get("followers_count", 0)
-			doc.fan_count = info.get("fan_count", 0)
+			setattr(doc, "followers_count", info.get("followers_count", 0))
+			setattr(doc, "fan_count", info.get("fan_count", 0))
 			if "picture" in info and "data" in info["picture"]:
-				doc.profile_picture_url = info["picture"]["data"].get("url")
+				setattr(doc, "profile_picture_url", info["picture"]["data"].get("url"))
 			if "cover" in info:
-				doc.cover_photo_url = info["cover"].get("source")
+				setattr(doc, "cover_photo_url", info["cover"].get("source"))
 			doc.save(ignore_permissions=True)
 		except Exception:
 			pass
@@ -163,7 +213,16 @@ def get_page_details(page_id):
 		doc = frappe.get_doc("Facebook Page", page_id)
 		return api_response(success=True, data=doc.as_dict())
 	except frappe.DoesNotExistError:
-		return api_response(success=False, message="Page not found", status_code=404)
+		try:
+			settings = frappe.get_single("Facebook Settings")
+			return api_response(success=True, data={
+				"name": settings.page_id or page_id,
+				"page_name": settings.page_name or "Paperware Factory",
+				"followers_count": 0,
+				"fan_count": 0
+			})
+		except Exception:
+			return api_response(success=False, message="Page not found", status_code=404)
 
 
 # ── Posts Endpoints ───────────────────────────────────────────────────
@@ -174,11 +233,12 @@ def get_posts(page_id=None, status=None, page=1, limit=20):
 	if page_id and not check_portal_permission(page_id, "can_view"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
-	filters = {}
-	if page_id:
-		filters["page"] = page_id
+	page_ids = resolve_page_ids(page_id)
+	filters = []
+	if page_ids:
+		filters.append(["Facebook Post", "page", "in", page_ids])
 	if status:
-		filters["status"] = status
+		filters.append(["Facebook Post", "status", "=", status])
 		
 	limit_start = (int(page) - 1) * int(limit)
 	
@@ -229,7 +289,7 @@ def create_post(page_id, message, post_type="Text", media_url=None, video_url=No
 		})
 		cal_doc.insert(ignore_permissions=True)
 		
-		publisher_doc.content_calendar = cal_doc.name
+		publisher_doc.set("content_calendar", cal_doc.name)
 		publisher_doc.save(ignore_permissions=True)
 		
 		return api_response(success=True, message="Post successfully scheduled", data=publisher_doc.as_dict())
@@ -243,7 +303,6 @@ def create_post(page_id, message, post_type="Text", media_url=None, video_url=No
 	elif post_type == "Video" and video_url:
 		res = client.create_video_post(message, video_url=video_url)
 	elif post_type == "Carousel" and additional_images:
-		# Multi-image post logic
 		imgs = json.loads(additional_images) if isinstance(additional_images, str) else additional_images
 		photo_ids = []
 		for img in imgs:
@@ -267,7 +326,6 @@ def create_post(page_id, message, post_type="Text", media_url=None, video_url=No
 		})
 		post_doc.insert(ignore_permissions=True)
 		
-		# Post first comment if provided
 		if first_comment:
 			try:
 				client.reply_to_comment(post_id, first_comment)
@@ -287,12 +345,11 @@ def publish_post_now(publisher_name):
 	except frappe.DoesNotExistError:
 		return api_response(success=False, message="Scheduled post not found", status_code=404)
 		
-	if not check_portal_permission(pub_doc.facebook_page, "can_post"):
+	page_name = getattr(pub_doc, "facebook_page", None)
+	if not check_portal_permission(page_name, "can_post"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
-	# Call publisher task directly
-	from social_media.facebook.doctype.facebook_auto_post_publisher.facebook_auto_post_publisher import publish_post
-	success = publish_post(pub_doc)
+	success = pub_doc.publish_now()
 	
 	if success:
 		return api_response(success=True, message="Post published successfully")
@@ -300,16 +357,18 @@ def publish_post_now(publisher_name):
 
 
 @frappe.whitelist()
-def get_calendar_entries(page_id, start_date, end_date):
+def get_calendar_entries(page_id=None, start_date=None, end_date=None):
 	"""Get content calendar entries for a given date range."""
-	if not check_portal_permission(page_id, "can_view"):
+	if page_id and not check_portal_permission(page_id, "can_view"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
-	filters = {
-		"page": page_id,
-		"scheduled_date": ["between", [start_date, end_date]]
-	}
-	
+	page_ids = resolve_page_ids(page_id)
+	filters = []
+	if page_ids:
+		filters.append(["Facebook Content Calendar", "page", "in", page_ids])
+	if start_date and end_date:
+		filters.append(["Facebook Content Calendar", "scheduled_date", "between", [start_date, end_date]])
+		
 	entries = frappe.get_all(
 		"Facebook Content Calendar",
 		filters=filters,
@@ -322,18 +381,21 @@ def get_calendar_entries(page_id, start_date, end_date):
 # ── Comments Endpoints ────────────────────────────────────────────────
 
 @frappe.whitelist()
-def get_comments(page_id, post_id=None, sentiment=None, is_hidden=None, page=1, limit=50):
+def get_comments(page_id=None, post_id=None, sentiment=None, is_hidden=None, page=1, limit=50):
 	"""List comments with advanced filters (sentiment, status)."""
-	if not check_portal_permission(page_id, "can_view"):
+	if page_id and not check_portal_permission(page_id, "can_view"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
-	filters = {"page": page_id}
+	page_ids = resolve_page_ids(page_id)
+	filters = []
+	if page_ids:
+		filters.append(["Facebook Comment", "page", "in", page_ids])
 	if post_id:
-		filters["post"] = post_id
+		filters.append(["Facebook Comment", "post", "=", post_id])
 	if sentiment:
-		filters["sentiment"] = sentiment
+		filters.append(["Facebook Comment", "sentiment", "=", sentiment])
 	if is_hidden is not None:
-		filters["is_hidden"] = int(is_hidden)
+		filters.append(["Facebook Comment", "is_hidden", "=", int(is_hidden)])
 		
 	limit_start = (int(page) - 1) * int(limit)
 	
@@ -358,16 +420,18 @@ def reply_to_comment(comment_name, reply_message):
 	except frappe.DoesNotExistError:
 		return api_response(success=False, message="Comment not found", status_code=404)
 		
-	if not check_portal_permission(comment_doc.page, "can_comment"):
+	comment_page = getattr(comment_doc, "page", None)
+	if not check_portal_permission(comment_page, "can_comment"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
-	client = FacebookGraphClient(page_id=comment_doc.page)
-	res = client.reply_to_comment(comment_doc.comment_id, reply_message)
+	comment_id = getattr(comment_doc, "comment_id", "")
+	client = FacebookGraphClient(page_id=comment_page)
+	res = client.reply_to_comment(comment_id, reply_message)
 	
 	if res and "id" in res:
-		comment_doc.reply_message = reply_message
-		comment_doc.replied_time = datetime.now()
-		comment_doc.replied_by = frappe.session.user
+		setattr(comment_doc, "reply_message", reply_message)
+		setattr(comment_doc, "replied_time", datetime.now())
+		setattr(comment_doc, "replied_by", frappe.session.user)
 		comment_doc.save(ignore_permissions=True)
 		return api_response(success=True, data=comment_doc.as_dict())
 		
@@ -382,14 +446,16 @@ def hide_comment(comment_name, hide=True):
 	except frappe.DoesNotExistError:
 		return api_response(success=False, message="Comment not found", status_code=404)
 		
-	if not check_portal_permission(comment_doc.page, "can_comment"):
+	comment_page = getattr(comment_doc, "page", None)
+	if not check_portal_permission(comment_page, "can_comment"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
-	client = FacebookGraphClient(page_id=comment_doc.page)
-	res = client.hide_comment(comment_doc.comment_id) if hide else client.unhide_comment(comment_doc.comment_id)
+	comment_id = getattr(comment_doc, "comment_id", "")
+	client = FacebookGraphClient(page_id=comment_page)
+	res = client.hide_comment(comment_id) if hide else client.unhide_comment(comment_id)
 	
 	if res and res.get("success"):
-		comment_doc.is_hidden = 1 if hide else 0
+		setattr(comment_doc, "is_hidden", 1 if hide else 0)
 		comment_doc.save(ignore_permissions=True)
 		return api_response(success=True, data=comment_doc.as_dict())
 		
@@ -399,66 +465,78 @@ def hide_comment(comment_name, hide=True):
 # ── Messenger Endpoints ───────────────────────────────────────────────
 
 @frappe.whitelist()
-def get_conversations(page_id, status=None, page=1, limit=20):
-	"""Get conversation threads grouped by user."""
-	if not check_portal_permission(page_id, "can_view"):
+def get_conversations(page_id=None, status=None, page=1, limit=20):
+	"""Get conversation threads grouped by user (optimized single SQL query)."""
+	if page_id and not check_portal_permission(page_id, "can_view"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
-	# Find unique conversation_ids
-	filters = {"page": page_id}
+	page_ids = resolve_page_ids(page_id)
+	where_clauses = []
+	params = {}
+
+	if page_ids:
+		where_clauses.append("(page IN %(page_ids)s OR page IS NULL OR page = '')")
+		params["page_ids"] = tuple(page_ids)
 	if status:
-		filters["conversation_status"] = status
-		
+		where_clauses.append("conversation_status = %(status)s")
+		params["status"] = status
+
+	where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 	limit_start = (int(page) - 1) * int(limit)
-	
-	# Fetch the latest message for each unique conversation thread
-	threads = frappe.db.sql(
-		"""
+	params["limit_start"] = limit_start
+	params["limit"] = int(limit)
+
+	# High-performance single SQL query
+	query = f"""
 		SELECT 
-			conversation_id,
-			sender_name,
-			sender_id,
-			MAX(timestamp) as last_message_time,
-			SUM(CASE WHEN is_read = 0 AND direction = 'Incoming' THEN 1 ELSE 0 END) as unread_count,
-			conversation_status,
-			assigned_agent
-		FROM `tabFacebook Messenger Chat`
-		WHERE page = %(page_id)s
-		GROUP BY conversation_id, sender_name, sender_id, conversation_status, assigned_agent
-		ORDER BY last_message_time DESC
+			c.conversation_id,
+			c.message AS last_message,
+			c.direction AS last_message_direction,
+			c.timestamp AS last_message_time,
+			COALESCE(cust.sender_name, c.sender_name, 'Facebook Customer') AS sender_name,
+			COALESCE(cust.sender_id, CASE WHEN c.conversation_id LIKE 't_%%' THEN SUBSTRING(c.conversation_id, 3) ELSE c.sender_id END) AS sender_id,
+			COALESCE(unr.unread_count, 0) AS unread_count,
+			c.conversation_status,
+			c.assigned_agent,
+			c.is_complaint,
+			c.page
+		FROM `tabFacebook Messenger Chat` c
+		INNER JOIN (
+			SELECT conversation_id, MAX(timestamp) AS max_time
+			FROM `tabFacebook Messenger Chat`
+			{where_sql}
+			GROUP BY conversation_id
+		) latest ON c.conversation_id = latest.conversation_id AND c.timestamp = latest.max_time
+		LEFT JOIN (
+			SELECT conversation_id, SUM(CASE WHEN is_read = 0 AND direction = 'Incoming' THEN 1 ELSE 0 END) AS unread_count
+			FROM `tabFacebook Messenger Chat`
+			{where_sql}
+			GROUP BY conversation_id
+		) unr ON c.conversation_id = unr.conversation_id
+		LEFT JOIN (
+			SELECT conversation_id, MAX(sender_name) AS sender_name, MAX(sender_id) AS sender_id
+			FROM `tabFacebook Messenger Chat`
+			WHERE direction = 'Incoming'
+			GROUP BY conversation_id
+		) cust ON c.conversation_id = cust.conversation_id
+		GROUP BY c.conversation_id
+		ORDER BY c.timestamp DESC
 		LIMIT %(limit_start)s, %(limit)s
-		""",
-		{"page_id": page_id, "limit_start": limit_start, "limit": int(limit)},
-		as_dict=True
-	)
-	
-	# For each thread, get the content of the last message
-	for thread in threads:
-		last_msg = frappe.get_all(
-			"Facebook Messenger Chat",
-			filters={"conversation_id": thread.conversation_id},
-			fields=["message", "direction"],
-			order_by="timestamp desc",
-			limit=1
-		)
-		if last_msg:
-			thread["last_message"] = last_msg[0].message
-			thread["last_message_direction"] = last_msg[0].direction
-			
-	total_count = frappe.db.sql(
-		"SELECT COUNT(DISTINCT conversation_id) FROM `tabFacebook Messenger Chat` WHERE page = %s",
-		(page_id,)
-	)[0][0]
-	
+	"""
+
+	threads = frappe.db.sql(query, params, as_dict=True)
+
+	count_query = f"SELECT COUNT(DISTINCT conversation_id) FROM `tabFacebook Messenger Chat` {where_sql}"
+	total_count = frappe.db.sql(count_query, params)[0][0] or 0
+
 	return api_response(success=True, data=threads, total_count=total_count)
 
 
 @frappe.whitelist()
 def get_messages(conversation_id, page=1, limit=50):
 	"""Get all messages in a conversation thread."""
-	# Check permissions on first message page
 	sample_msg = frappe.get_all("Facebook Messenger Chat", filters={"conversation_id": conversation_id}, fields=["page"], limit=1)
-	if not sample_msg or not check_portal_permission(sample_msg[0].page, "can_view"):
+	if sample_msg and sample_msg[0].page and not check_portal_permission(sample_msg[0].page, "can_view"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
 	limit_start = (int(page) - 1) * int(limit)
@@ -466,13 +544,12 @@ def get_messages(conversation_id, page=1, limit=50):
 	messages = frappe.get_all(
 		"Facebook Messenger Chat",
 		filters={"conversation_id": conversation_id},
-		fields=["name", "sender_name", "sender_id", "direction", "timestamp", "message", "is_read", "attachments"],
+		fields=["name", "sender_name", "sender_id", "direction", "timestamp", "message", "is_delivered", "is_read", "attachments"],
 		order_by="timestamp asc",
 		limit_start=limit_start,
 		limit_page_length=limit
 	)
 	
-	# Mark as read
 	frappe.db.set_value(
 		"Facebook Messenger Chat",
 		{"conversation_id": conversation_id, "direction": "Incoming", "is_read": 0},
@@ -486,19 +563,37 @@ def get_messages(conversation_id, page=1, limit=50):
 @frappe.whitelist()
 def send_message(page_id, recipient_id, message_text):
 	"""Send a message to a customer via Messenger."""
-	if not check_portal_permission(page_id, "can_message"):
+	if not message_text or not recipient_id:
+		return api_response(success=False, message="Message text and recipient ID are required", status_code=400)
+
+	# 1. Resolve actual page_id if page_id is None, 'all', 'undefined', or doc name
+	actual_page_id = page_id
+	if not actual_page_id or str(actual_page_id).strip().lower() in ("all", "undefined", "null", "none", ""):
+		# Try to find page from existing chat record with this recipient
+		sample = frappe.get_all("Facebook Messenger Chat", filters={"conversation_id": f"t_{recipient_id}"}, fields=["page"], limit=1)
+		if sample and sample[0].page:
+			actual_page_id = sample[0].page
+		else:
+			pages = get_pages()
+			if pages.get("data") and len(pages["data"]) > 0:
+				actual_page_id = pages["data"][0].get("name") or pages["data"][0].get("page_id")
+
+	if not actual_page_id:
+		return api_response(success=False, message="No active Facebook Page found for sending message", status_code=400)
+
+	if not check_portal_permission(actual_page_id, "can_message"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
-	client = FacebookGraphClient(page_id=page_id)
+	client = FacebookGraphClient(page_id=actual_page_id)
 	res = client.send_message(recipient_id, message_text)
 	
-	if res and "message_id" in res:
-		# Save message to DB
+	if res and ("message_id" in res or "recipient_id" in res or res.get("success")):
+		page_info = client.get_page_info() or {}
 		msg_doc = frappe.get_doc({
 			"doctype": "Facebook Messenger Chat",
-			"sender_id": page_id,
-			"sender_name": client.get_page_info().get("name", "Page"),
-			"page": page_id,
+			"sender_id": str(client.page_id or actual_page_id),
+			"sender_name": page_info.get("name", "Page"),
+			"page": str(actual_page_id),
 			"conversation_id": f"t_{recipient_id}",
 			"direction": "Outgoing",
 			"message": message_text,
@@ -507,17 +602,23 @@ def send_message(page_id, recipient_id, message_text):
 		})
 		msg_doc.insert(ignore_permissions=True)
 		
-		# Also log in the log table
+		# Explicitly publish realtime event
+		try:
+			from social_media.facebook.realtime import publish_new_message
+			publish_new_message(msg_doc)
+		except Exception:
+			pass
+
 		try:
 			log_doc = frappe.get_doc({
 				"doctype": "Facebook Message Log",
-				"instance": page_id,
+				"instance": str(actual_page_id),
 				"direction": "Outbound",
 				"status": "Sent",
 				"timestamp": datetime.now(),
-				"sender_psid": page_id,
+				"sender_psid": str(client.page_id or actual_page_id),
 				"recipient_psid": recipient_id,
-				"message_id": res["message_id"],
+				"message_id": res.get("message_id", ""),
 				"message_text": message_text
 			})
 			log_doc.insert(ignore_permissions=True)
@@ -526,15 +627,14 @@ def send_message(page_id, recipient_id, message_text):
 			
 		return api_response(success=True, data=msg_doc.as_dict())
 		
-	return api_response(success=False, message="Failed to send message via Messenger")
+	return api_response(success=False, message="Failed to send message via Messenger Graph API")
 
 
 @frappe.whitelist()
 def update_conversation_status(conversation_id, status):
 	"""Update conversation thread status (Open/Pending/Resolved)."""
-	# Check sample message to verify page permission
 	sample_msg = frappe.get_all("Facebook Messenger Chat", filters={"conversation_id": conversation_id}, fields=["page"], limit=1)
-	if not sample_msg or not check_portal_permission(sample_msg[0].page, "can_message"):
+	if sample_msg and sample_msg[0].page and not check_portal_permission(sample_msg[0].page, "can_message"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
 	frappe.db.set_value(
@@ -554,11 +654,12 @@ def get_leads(page_id=None, status=None, page=1, limit=50):
 	if page_id and not check_portal_permission(page_id, "can_view"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
-	filters = {}
-	if page_id:
-		filters["page"] = page_id
+	page_ids = resolve_page_ids(page_id)
+	filters = []
+	if page_ids:
+		filters.append(["Facebook Lead", "page", "in", page_ids])
 	if status:
-		filters["status"] = status
+		filters.append(["Facebook Lead", "status", "=", status])
 		
 	limit_start = (int(page) - 1) * int(limit)
 	
@@ -583,16 +684,16 @@ def convert_lead_to_erpnext(lead_name):
 	except frappe.DoesNotExistError:
 		return api_response(success=False, message="Lead not found", status_code=404)
 		
-	if not check_portal_permission(lead_doc.page, "can_comment"):
+	lead_page = getattr(lead_doc, "page", None)
+	if not check_portal_permission(lead_page, "can_comment"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
-	# Call local lead conversion method
 	from social_media.facebook.leads import create_erpnext_lead
 	erpnext_lead_name = create_erpnext_lead(lead_doc)
 	
 	if erpnext_lead_name:
-		lead_doc.erpnext_lead = erpnext_lead_name
-		lead_doc.status = "Converted"
+		setattr(lead_doc, "erpnext_lead", erpnext_lead_name)
+		setattr(lead_doc, "status", "Converted")
 		lead_doc.save(ignore_permissions=True)
 		return api_response(success=True, data={"erpnext_lead": erpnext_lead_name})
 		
@@ -602,14 +703,17 @@ def convert_lead_to_erpnext(lead_name):
 # ── Insights & Ads ────────────────────────────────────────────────────
 
 @frappe.whitelist()
-def get_page_insights_data(page_id, date_from=None, date_to=None):
+def get_page_insights_data(page_id=None, date_from=None, date_to=None):
 	"""Get page insights for analytics charts."""
-	if not check_portal_permission(page_id, "can_insights"):
+	if page_id and not check_portal_permission(page_id, "can_insights"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
-	filters = {"page": page_id}
+	page_ids = resolve_page_ids(page_id)
+	filters = []
+	if page_ids:
+		filters.append(["Facebook Insight", "page", "in", page_ids])
 	if date_from and date_to:
-		filters["date"] = ["between", [date_from, date_to]]
+		filters.append(["Facebook Insight", "date", "between", [date_from, date_to]])
 		
 	insights = frappe.get_all(
 		"Facebook Insight",
@@ -627,9 +731,10 @@ def get_ad_campaigns(page_id=None, page=1, limit=50):
 	if page_id and not check_portal_permission(page_id, "can_ads"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 
-	filters = {}
-	if page_id:
-		filters["page"] = page_id
+	page_ids = resolve_page_ids(page_id)
+	filters = []
+	if page_ids:
+		filters.append(["Facebook Ad Campaign", "page", "in", page_ids])
 		
 	limit_start = (int(page) - 1) * int(limit)
 	
@@ -694,7 +799,6 @@ def save_portal_settings(graph_api_version=None, ai_provider=None, ai_api_url=No
 		return api_response(success=False, message=str(e))
 
 
-
 @frappe.whitelist()
 def get_media_library(page_id=None, media_type=None, page=1, limit=40):
 	"""Get uploaded files/media from Frappe File manager for use in posts."""
@@ -703,9 +807,9 @@ def get_media_library(page_id=None, media_type=None, page=1, limit=40):
 
 	filters = {"is_folder": 0}
 	if media_type == "Image":
-		filters["file_type"] = ["in", ["image/jpeg", "image/png", "image/gif", "image/webp", "jpg", "jpeg", "png", "gif", "webp"]]
+		filters["file_type"] = ("in", ["image/jpeg", "image/png", "image/gif", "image/webp", "jpg", "jpeg", "png", "gif", "webp"])
 	elif media_type == "Video":
-		filters["file_type"] = ["in", ["video/mp4", "video/webm", "mp4", "webm"]]
+		filters["file_type"] = ("in", ["video/mp4", "video/webm", "mp4", "webm"])
 
 	limit_start = (int(page) - 1) * int(limit)
 
@@ -720,7 +824,6 @@ def get_media_library(page_id=None, media_type=None, page=1, limit=40):
 			ignore_permissions=True
 		)
 
-		# Normalize fields for frontend
 		result = []
 		for f in files:
 			media_t = "Image"
@@ -741,7 +844,6 @@ def get_media_library(page_id=None, media_type=None, page=1, limit=40):
 	except Exception as e:
 		frappe.log_error("Portal Media Library Error", str(e))
 		return api_response(success=False, message=str(e))
-
 
 
 # ── Ads Management Portal APIs ────────────────────────────────────────────────
@@ -926,4 +1028,565 @@ def portal_create_ad(adset_id, ad_name, headline, body_text, destination_url,
 		message=result.get("message", result.get("error", "")),
 		data=result
 	)
+
+
+@frappe.whitelist()
+def trigger_background_sync(page_id=None):
+	"""Trigger background sync of old Facebook Messenger messages."""
+	if page_id and str(page_id).strip().lower() in ("all", "undefined", "null", "none", ""):
+		page_id = None
+
+	if page_id and not check_portal_permission(page_id, "can_message"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	from social_media.facebook.messenger import enqueue_sync_old_messages
+	result = enqueue_sync_old_messages(page_id=page_id)
+	return api_response(success=True, message="Background message sync queued successfully", data=result)
+
+
+@frappe.whitelist()
+def get_dashboard_summary(page_id=None):
+	"""Get aggregated KPIs and summary data for the portal executive dashboard."""
+	if page_id and not check_portal_permission(page_id, "can_view"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	page_ids = resolve_page_ids(page_id)
+
+	page_info = {}
+	if page_id:
+		try:
+			doc = frappe.get_doc("Facebook Page", page_id)
+			page_info = {
+				"page_name": getattr(doc, "page_name", ""),
+				"followers_count": getattr(doc, "followers_count", 0) or 0,
+				"fan_count": getattr(doc, "fan_count", 0) or 0,
+				"profile_picture_url": getattr(doc, "profile_picture_url", None),
+				"cover_photo_url": getattr(doc, "cover_photo_url", None)
+			}
+		except Exception:
+			pass
+			
+	if not page_info:
+		try:
+			settings = frappe.get_single("Facebook Settings")
+			if settings.page_id:
+				page_info = {
+					"page_name": settings.page_name or "Paperware Factory",
+					"followers_count": 0,
+					"fan_count": 0,
+					"profile_picture_url": None,
+					"cover_photo_url": None
+				}
+		except Exception:
+			pass
+
+	post_filters = [["Facebook Post", "page", "in", page_ids]] if page_ids else []
+	total_posts = frappe.db.count("Facebook Post", filters=post_filters)
+
+	scheduled_filters = {"publish_status": "Scheduled"}
+	if page_ids:
+		scheduled_filters["facebook_page"] = ["in", page_ids]
+	scheduled_posts = frappe.db.count("Facebook Auto Post Publisher", filters=scheduled_filters)
+
+	lead_filters = [["Facebook Lead", "page", "in", page_ids]] if page_ids else []
+	total_leads = frappe.db.count("Facebook Lead", filters=lead_filters)
+
+	new_lead_filters = [["Facebook Lead", "page", "in", page_ids], ["Facebook Lead", "status", "=", "New"]] if page_ids else {"status": "New"}
+	new_leads = frappe.db.count("Facebook Lead", filters=new_lead_filters)
+
+	msg_where = "WHERE (page IN %(page_ids)s OR page IS NULL OR page = '') AND is_read = 0 AND direction = 'Incoming'" if page_ids else "WHERE is_read = 0 AND direction = 'Incoming'"
+	msg_params = {"page_ids": tuple(page_ids)} if page_ids else {}
+	unread_messages = frappe.db.sql(f"SELECT COUNT(*) FROM `tabFacebook Messenger Chat` {msg_where}", msg_params)[0][0] or 0
+
+	conv_where = "WHERE (page IN %(page_ids)s OR page IS NULL OR page = '')" if page_ids else ""
+	total_conversations = frappe.db.sql(f"SELECT COUNT(DISTINCT conversation_id) FROM `tabFacebook Messenger Chat` {conv_where}", msg_params)[0][0] or 0
+
+	sent_where = "WHERE (page IN %(page_ids)s OR page IS NULL OR page = '')" if page_ids else ""
+	sentiment_data = frappe.db.sql(f"""
+		SELECT sentiment, COUNT(*) as count 
+		FROM `tabFacebook Comment`
+		{sent_where}
+		GROUP BY sentiment
+	""", msg_params, as_dict=True)
+
+	sentiments = {"Positive": 0, "Neutral": 0, "Negative": 0}
+	for s in sentiment_data:
+		if s.sentiment in sentiments:
+			sentiments[s.sentiment] = s.count
+
+	camp_filters = [["Facebook Ad Campaign", "page", "in", page_ids], ["Facebook Ad Campaign", "status", "=", "ACTIVE"]] if page_ids else {"status": "ACTIVE"}
+	active_campaigns = frappe.db.count("Facebook Ad Campaign", filters=camp_filters)
+
+	spend_where = "WHERE (page IN %(page_ids)s OR page IS NULL OR page = '')" if page_ids else ""
+	total_spend_res = frappe.db.sql(f"SELECT SUM(spend) FROM `tabFacebook Ad Campaign` {spend_where}", msg_params)[0][0] or 0.0
+
+	summary = {
+		"page_info": page_info,
+		"total_posts": total_posts,
+		"scheduled_posts": scheduled_posts,
+		"total_leads": total_leads,
+		"new_leads": new_leads,
+		"unread_messages": unread_messages,
+		"total_conversations": total_conversations,
+		"sentiments": sentiments,
+		"active_campaigns": active_campaigns,
+		"total_ad_spend": round(float(total_spend_res), 2)
+	}
+
+	return api_response(success=True, data=summary)
+
+
+@frappe.whitelist()
+def generate_ai_caption(topic, tone="engaging"):
+	"""Generate a Facebook post caption using AI based on a topic."""
+	if not check_portal_permission(permission_type="can_post"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	prompt = f"Write an engaging, professional Facebook post caption for a business page about: '{topic}'. Tone: {tone}. Include relevant hashtags and emojis."
+	try:
+		from social_media.facebook.ai_agent import call_llm
+		result = call_llm(prompt, system_instruction="You are an expert social media manager writing Facebook post captions.")
+		if not result:
+			result = f"🚀 Exciting news about {topic}! Stay tuned for more updates. #Business #Facebook #Innovation"
+		return api_response(success=True, data={"caption": result})
+	except Exception as e:
+		fallback = f"✨ Discover how {topic} can transform your experience! Learn more today. #Facebook #Update"
+		return api_response(success=True, data={"caption": fallback})
+
+
+@frappe.whitelist()
+def generate_ai_chat_reply(customer_message, sender_name="Customer"):
+	"""Generate a smart AI suggestion for customer Messenger messages."""
+	if not check_portal_permission(permission_type="can_message"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	prompt = f"Customer '{sender_name}' sent the following message: '{customer_message}'. Generate a helpful, friendly, professional reply for our Facebook customer support agent."
+	try:
+		from social_media.facebook.ai_agent import call_llm
+		result = call_llm(prompt, system_instruction="You are a helpful customer support agent for a Facebook business page.")
+		if not result:
+			result = f"Hello {sender_name}! Thank you for reaching out. How can I help you further?"
+		return api_response(success=True, data={"reply": result})
+	except Exception as e:
+		fallback = f"Hi {sender_name}, thanks for messaging us! How can we assist you today?"
+		return api_response(success=True, data={"reply": fallback})
+
+
+def send_message_internal(page_id, recipient_id, message_text):
+	"""Internal helper to send Messenger message and create doc record."""
+	from social_media.facebook.graph_client import FacebookGraphClient
+	client = FacebookGraphClient(page_id=page_id)
+	res = client.send_message(recipient_id, message_text)
+	
+	if res and "message_id" in res:
+		chat_doc = frappe.get_doc({
+			"doctype": "Facebook Messenger Chat",
+			"sender_id": recipient_id,
+			"sender_name": "Page Admin",
+			"page": page_id or "all",
+			"conversation_id": f"t_{recipient_id}",
+			"message": message_text,
+			"direction": "Outgoing",
+			"is_read": 1
+		})
+		chat_doc.insert(ignore_permissions=True)
+		frappe.db.commit()
+		
+		try:
+			from social_media.facebook.realtime import publish_new_message
+			publish_new_message(chat_doc)
+		except Exception:
+			pass
+		return True
+	return False
+
+
+# ── Complaint Handling Endpoints ─────────────────────────────────────
+
+@frappe.whitelist()
+def get_complaints(page_id=None, status=None):
+	"""Get all customer complaints flagged by AI or team."""
+	if not check_portal_permission(page_id, "can_message"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	filters = [["Facebook Messenger Chat", "is_complaint", "=", 1]]
+	page_ids = resolve_page_ids(page_id)
+	if page_ids:
+		filters.append(["Facebook Messenger Chat", "page", "in", page_ids])
+
+	if status and str(status).strip() and str(status).lower() != "all":
+		filters.append(["Facebook Messenger Chat", "complaint_status", "=", status])
+
+	complaints = frappe.get_all(
+		"Facebook Messenger Chat",
+		filters=filters,
+		fields=[
+			"name", "sender_id", "sender_name", "page", "conversation_id",
+			"message", "timestamp", "is_complaint", "complaint_status",
+			"priority", "assigned_agent", "tags"
+		],
+		order_by="timestamp desc",
+		ignore_permissions=True
+	)
+
+	return api_response(success=True, data=complaints)
+
+
+@frappe.whitelist()
+def update_complaint_status(chat_name, complaint_status="Open", priority=None, assigned_agent=None):
+	"""Update complaint status, priority, or assigned agent."""
+	if not check_portal_permission(permission_type="can_message"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	try:
+		doc = frappe.get_doc("Facebook Messenger Chat", chat_name)
+		doc.complaint_status = complaint_status
+		if priority:
+			doc.priority = priority
+		if assigned_agent is not None:
+			doc.assigned_agent = assigned_agent
+		doc.save(ignore_permissions=True)
+		frappe.db.commit()
+
+		return api_response(success=True, message=f"Complaint updated to {complaint_status}")
+	except Exception as e:
+		return api_response(success=False, message=str(e), status_code=500)
+
+
+# ── Agent & Moderator Management Endpoints ───────────────────────────
+
+@frappe.whitelist()
+def get_team_members():
+	"""Fetch team members, their Facebook Page assignments, and system users."""
+	if not check_portal_permission(permission_type="can_settings"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	settings = frappe.get_single("Facebook Settings")
+	roles = settings.get("team_roles") or []
+
+	team_members = []
+	for r in roles:
+		user_fullname = frappe.utils.get_fullname(r.user)
+		team_members.append({
+			"name": r.name,
+			"user": r.user,
+			"user_fullname": user_fullname,
+			"page": r.page,
+			"can_post": getattr(r, "can_post", 0),
+			"can_comment": getattr(r, "can_comment", 0),
+			"can_message": getattr(r, "can_message", 0),
+			"can_ads": getattr(r, "can_ads", 0),
+			"can_insights": getattr(r, "can_insights", 0),
+			"can_settings": getattr(r, "can_settings", 0)
+		})
+
+	# Get all active system users for selection dropdown
+	system_users = frappe.get_all(
+		"User",
+		filters={"enabled": 1, "user_type": "System User"},
+		fields=["name", "full_name", "email"],
+		order_by="full_name asc",
+		ignore_permissions=True
+	)
+
+	return api_response(success=True, data={
+		"team_members": team_members,
+		"system_users": system_users
+	})
+
+
+@frappe.whitelist()
+def save_team_member(user, page, can_post=0, can_comment=0, can_message=0, can_ads=0, can_insights=0, can_settings=0):
+	"""Add or update an agent/moderator page role in Facebook Settings."""
+	if not check_portal_permission(permission_type="can_settings"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	if not user or not page:
+		return api_response(success=False, message="User and Page are required", status_code=400)
+
+	settings = frappe.get_single("Facebook Settings")
+	roles = settings.get("team_roles") or []
+
+	# Check if role entry already exists for user + page
+	existing = None
+	for r in roles:
+		if r.user == user and r.page == page:
+			existing = r
+			break
+
+	if existing:
+		existing.can_post = int(can_post)
+		existing.can_comment = int(can_comment)
+		existing.can_message = int(can_message)
+		existing.can_ads = int(can_ads)
+		existing.can_insights = int(can_insights)
+		existing.can_settings = int(can_settings)
+	else:
+		settings.append("team_roles", {
+			"user": user,
+			"page": page,
+			"can_post": int(can_post),
+			"can_comment": int(can_comment),
+			"can_message": int(can_message),
+			"can_ads": int(can_ads),
+			"can_insights": int(can_insights),
+			"can_settings": int(can_settings)
+		})
+
+	settings.save(ignore_permissions=True)
+	frappe.db.commit()
+
+	return api_response(success=True, message="Agent & Moderator role saved successfully")
+
+
+@frappe.whitelist()
+def remove_team_member(user, page):
+	"""Remove a user's page assignment."""
+	if not check_portal_permission(permission_type="can_settings"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	settings = frappe.get_single("Facebook Settings")
+	roles = settings.get("team_roles") or []
+
+	new_roles = [r for r in roles if not (r.user == user and r.page == page)]
+	settings.set("team_roles", new_roles)
+	settings.save(ignore_permissions=True)
+	frappe.db.commit()
+
+	return api_response(success=True, message="Team member role removed")
+
+
+@frappe.whitelist()
+def flag_chat_as_complaint(conversation_id, priority="High"):
+	"""Flag an entire conversation as a complaint."""
+	if not check_portal_permission(permission_type="can_message"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	frappe.db.sql("""
+		UPDATE `tabFacebook Messenger Chat`
+		SET is_complaint = 1, complaint_status = 'Open', priority = %s
+		WHERE conversation_id = %s
+	""", (priority, conversation_id))
+	frappe.db.commit()
+
+	return api_response(success=True, message="Conversation flagged as Complaint")
+
+
+@frappe.whitelist()
+def create_lead_from_chat(sender_id, sender_name="Facebook Customer"):
+	"""Create a new ERPNext Lead from a Messenger conversation."""
+	if not check_portal_permission(permission_type="can_message"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	try:
+		# Check if Lead already exists
+		existing_lead = frappe.db.get_value("Lead", {"facebook_psid": sender_id}, "name")
+		if not existing_lead:
+			existing_lead = frappe.db.get_value("Lead", {"lead_name": sender_name}, "name")
+
+		if existing_lead:
+			return api_response(success=True, data={"erpnext_lead": existing_lead}, message="Lead already exists in ERPNext")
+
+		lead_doc = {
+			"doctype": "Lead",
+			"lead_name": sender_name,
+			"source": "Facebook Messenger"
+		}
+		if frappe.db.has_column("Lead", "facebook_psid"):
+			lead_doc["facebook_psid"] = sender_id
+
+		lead = frappe.get_doc(lead_doc)
+		lead.insert(ignore_permissions=True)
+		frappe.db.commit()
+
+		return api_response(success=True, data={"erpnext_lead": lead.name}, message="ERPNext Lead created successfully")
+	except Exception as e:
+		return api_response(success=False, message=str(e), status_code=500)
+
+
+@frappe.whitelist()
+def get_session():
+	"""Get current session user info, CSRF token, and permissions."""
+	user = frappe.session.user
+	if user == "Guest":
+		return api_response(success=False, message="Not logged in", status_code=401)
+
+	full_name = frappe.db.get_value("User", user, "full_name") or user
+	user_image = frappe.db.get_value("User", user, "user_image") or ""
+	roles = frappe.get_roles(user)
+	is_admin = "System Manager" in roles or user == "Administrator"
+
+	csrf_token = None
+	try:
+		csrf_token = frappe.sessions.get_csrf_token()
+	except Exception:
+		pass
+
+	return api_response(success=True, data={
+		"user": user,
+		"full_name": full_name,
+		"user_image": user_image,
+		"roles": roles,
+		"is_admin": is_admin,
+		"csrf_token": csrf_token
+	})
+
+
+@frappe.whitelist()
+def assign_conversation(sender_id, assigned_agent=None):
+	"""Assign all messages in a conversation / sender_id to a specific agent."""
+	if not check_portal_permission(permission_type="can_message"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	frappe.db.sql("""
+		UPDATE `tabFacebook Messenger Chat`
+		SET assigned_agent = %s
+		WHERE sender_id = %s OR conversation_id = %s
+	""", (assigned_agent, sender_id, sender_id))
+	frappe.db.commit()
+
+	return api_response(success=True, message=f"Conversation assigned to {assigned_agent or 'Unassigned'}")
+
+
+@frappe.whitelist()
+def mark_read_by_sender(sender_id):
+	"""Mark all incoming messages from a sender as read."""
+	if not check_portal_permission(permission_type="can_message"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	frappe.db.sql("""
+		UPDATE `tabFacebook Messenger Chat`
+		SET is_read = 1
+		WHERE sender_id = %s AND direction = 'Incoming'
+	""", (sender_id,))
+	frappe.db.commit()
+
+	return api_response(success=True, message="Messages marked as read")
+
+
+@frappe.whitelist()
+def approve_ai_reply(name):
+	"""Approve an AI-generated comment reply and publish it."""
+	if not check_portal_permission(permission_type="can_comment"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	try:
+		reply_doc = frappe.get_doc("Facebook AI Comment Reply", name)
+		reply_doc.approval_status = "Approved"
+		reply_doc.approved_by = frappe.session.user
+		reply_doc.save(ignore_permissions=True)
+
+		try:
+			from social_media.facebook.ai_agent import publish_approved_reply
+			publish_approved_reply(reply_doc)
+		except Exception:
+			pass
+
+		frappe.db.commit()
+		return api_response(success=True, message="AI Reply approved")
+	except Exception as e:
+		return api_response(success=False, message=str(e), status_code=500)
+
+
+@frappe.whitelist()
+def reject_ai_reply(name):
+	"""Reject an AI-generated comment reply."""
+	if not check_portal_permission(permission_type="can_comment"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	try:
+		reply_doc = frappe.get_doc("Facebook AI Comment Reply", name)
+		reply_doc.approval_status = "Rejected"
+		reply_doc.save(ignore_permissions=True)
+		frappe.db.commit()
+		return api_response(success=True, message="AI Reply rejected")
+	except Exception as e:
+		return api_response(success=False, message=str(e), status_code=500)
+
+
+@frappe.whitelist()
+def get_ai_replies(comment_id=None, approval_status=None):
+	"""Get list of Facebook AI Comment Reply docs."""
+	filters = {}
+	if comment_id:
+		filters["comment_id"] = comment_id
+	if approval_status:
+		filters["approval_status"] = approval_status
+
+	replies = frappe.get_all(
+		"Facebook AI Comment Reply",
+		fields=["name", "comment_id", "original_comment", "comment_author", "post_id", "ai_model", "sentiment", "sentiment_score", "confidence_score", "generated_reply", "approval_status", "approved_by", "is_published", "creation"],
+		filters=filters,
+		order_by="creation desc"
+	)
+	return api_response(success=True, data=replies)
+
+
+@frappe.whitelist()
+def schedule_post(name, scheduled_datetime):
+	"""Schedule or reschedule a Content Calendar post or Auto Post Publisher."""
+	if not check_portal_permission(permission_type="can_post"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	try:
+		if frappe.db.exists("Facebook Content Calendar", name):
+			cal_doc = frappe.get_doc("Facebook Content Calendar", name)
+			dt_parts = str(scheduled_datetime).split(" ")
+			cal_doc.scheduled_date = dt_parts[0]
+			if len(dt_parts) > 1:
+				cal_doc.scheduled_time = dt_parts[1]
+			cal_doc.status = "Scheduled"
+			cal_doc.save(ignore_permissions=True)
+
+			if cal_doc.post:
+				publisher = frappe.get_doc("Facebook Auto Post Publisher", cal_doc.post)
+				publisher.schedule_datetime = scheduled_datetime
+				publisher.publish_status = "Scheduled"
+				publisher.save(ignore_permissions=True)
+
+		elif frappe.db.exists("Facebook Auto Post Publisher", name):
+			publisher = frappe.get_doc("Facebook Auto Post Publisher", name)
+			publisher.schedule_datetime = scheduled_datetime
+			publisher.publish_status = "Scheduled"
+			publisher.save(ignore_permissions=True)
+
+		frappe.db.commit()
+		return api_response(success=True, message="Post scheduled successfully")
+	except Exception as e:
+		return api_response(success=False, message=str(e), status_code=500)
+
+
+@frappe.whitelist()
+def get_ads_tree(account=None):
+	"""Get hierarchical tree of Campaigns -> Ad Sets -> Ads."""
+	if not check_portal_permission(permission_type="can_ads"):
+		return api_response(success=False, message="Permission denied", status_code=403)
+
+	campaign_filters = {}
+	if account:
+		campaign_filters["ad_account"] = account
+
+	campaigns = frappe.get_all(
+		"Facebook Ad Campaign",
+		fields=["name", "campaign_id", "campaign_name", "ad_account", "status", "objective", "daily_budget", "lifetime_budget", "impressions", "clicks", "spend", "cpc", "ctr"],
+		filters=campaign_filters,
+		order_by="creation desc"
+	)
+
+	for camp in campaigns:
+		adsets = frappe.get_all(
+			"Facebook Ad Set",
+			fields=["name", "adset_id", "adset_name", "campaign", "status", "daily_budget", "impressions", "clicks", "spend", "cpc", "ctr"],
+			filters={"campaign": camp["name"]}
+		)
+		for adset in adsets:
+			ads = frappe.get_all(
+				"Facebook Ad",
+				fields=["name", "ad_id", "ad_name", "ad_set", "campaign", "status", "creative_type", "headline", "body_text", "image_url", "impressions", "clicks", "spend", "conversions"],
+				filters={"ad_set": adset["name"]}
+			)
+			adset["ads"] = ads
+		camp["ad_sets"] = adsets
+
+	return api_response(success=True, data=campaigns)
 

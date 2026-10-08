@@ -16,9 +16,13 @@
   "timestamp",
   "conversation_status",
   "assigned_agent",
+  "is_complaint",
+  "complaint_status",
+  "priority",
   "tags",
   "message_section",
   "message",
+  "is_delivered",
   "is_read",
   "attachments"
  ],
@@ -91,6 +95,27 @@
    "options": "User"
   },
   {
+   "default": "0",
+   "fieldname": "is_complaint",
+   "fieldtype": "Check",
+   "label": "Is Complaint",
+   "in_list_view": 1
+  },
+  {
+   "default": "Open",
+   "fieldname": "complaint_status",
+   "fieldtype": "Select",
+   "label": "Complaint Status",
+   "options": "Open\nUnder Investigation\nResolved"
+  },
+  {
+   "default": "Medium",
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "Low\nMedium\nHigh\nUrgent"
+  },
+  {
    "fieldname": "tags",
    "fieldtype": "Small Text",
    "label": "Tags"
@@ -104,6 +129,12 @@
    "fieldname": "message",
    "fieldtype": "Long Text",
    "label": "Message"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_delivered",
+   "fieldtype": "Check",
+   "label": "Is Delivered"
   },
   {
    "fieldname": "is_read",

@@ -249,15 +249,27 @@ def create_post_log(reference_doctype, reference_name, post_id, message, status,
     return doc.name
 
 
-def create_messenger_chat(sender_id, sender_name, message, direction, customer=None):
+def create_messenger_chat(sender_id, sender_name, message, direction, customer=None, page=None, conversation_id=None):
     """Create a Facebook Messenger Chat entry."""
+    if not page:
+        try:
+            settings = get_settings()
+            page = settings.page_id or "101680618482915"
+        except Exception:
+            page = "101680618482915"
+
+    if not conversation_id:
+        conversation_id = f"t_{sender_id}"
+
     doc = frappe.get_doc({
         "doctype": "Facebook Messenger Chat",
         "sender_id": sender_id,
         "sender_name": sender_name,
         "message": message,
         "direction": direction,
-        "timestamp": datetime.now()
+        "timestamp": datetime.now(),
+        "page": page,
+        "conversation_id": conversation_id
     })
     
     if customer:
@@ -267,12 +279,20 @@ def create_messenger_chat(sender_id, sender_name, message, direction, customer=N
     return doc.name
 
 
-def create_facebook_lead(lead_data):
+def create_facebook_lead(lead_data, page=None):
     """Create a Facebook Lead entry."""
+    if not page:
+        try:
+            settings = get_settings()
+            page = settings.page_id or "101680618482915"
+        except Exception:
+            page = "101680618482915"
+
     doc = frappe.get_doc({
         "doctype": "Facebook Lead",
         "facebook_lead_id": lead_data.get("id"),
         "lead_form_id": lead_data.get("form_id"),
+        "page": page,
         "full_name": lead_data.get("full_name", ""),
         "email": lead_data.get("email", ""),
         "phone": lead_data.get("phone", ""),

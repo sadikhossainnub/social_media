@@ -67,13 +67,22 @@ class FacebookGraphClient:
 	@property
 	def page_id(self):
 		"""Resolve page ID."""
-		if self._page_id:
+		if self._page_id and str(self._page_id).lower() not in ("all", "undefined", "null", "none", ""):
 			try:
-				page_doc = frappe.get_doc("Facebook Page", self._page_id)
-				if getattr(page_doc, "page_id", None):
-					return page_doc.page_id
+				if frappe.db.exists("Facebook Page", self._page_id):
+					page_doc = frappe.get_doc("Facebook Page", self._page_id)
+					if getattr(page_doc, "page_id", None):
+						return page_doc.page_id
 			except Exception:
 				pass
+
+			try:
+				pages = frappe.get_all("Facebook Page", filters={"page_id": self._page_id}, fields=["page_id"], limit=1)
+				if pages and pages[0].get("page_id"):
+					return pages[0].page_id
+			except Exception:
+				pass
+
 			return self._page_id
 		return getattr(self.settings, "page_id", None)
 
@@ -92,16 +101,28 @@ class FacebookGraphClient:
 				self._access_token = token
 				return self._access_token
 
-		# Try page-specific token from Facebook Page doctype
-		if self._page_id:
+		# Try page-specific token from Facebook Page doctype by name or by page_id field
+		if self._page_id and str(self._page_id).lower() not in ("all", "undefined", "null", "none", ""):
+			page_name = None
 			try:
-				page_doc = frappe.get_doc("Facebook Page", self._page_id)
-				token = page_doc.get_password("access_token", raise_exception=False)
-				if token:
-					self._access_token = token
-					return self._access_token
-			except frappe.DoesNotExistError:
+				if frappe.db.exists("Facebook Page", self._page_id):
+					page_name = self._page_id
+				else:
+					pages = frappe.get_all("Facebook Page", filters={"page_id": self._page_id}, fields=["name"], limit=1)
+					if pages:
+						page_name = pages[0].name
+			except Exception:
 				pass
+
+			if page_name:
+				try:
+					page_doc = frappe.get_doc("Facebook Page", page_name)
+					token = page_doc.get_password("access_token", raise_exception=False)
+					if token:
+						self._access_token = token
+						return self._access_token
+				except Exception:
+					pass
 
 		# Fallback to settings page access token
 		token = self.settings.get_password("page_access_token", raise_exception=False)

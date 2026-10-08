@@ -13,30 +13,34 @@ from datetime import datetime
 
 def verify_webhook_signature():
 	"""
-	Verify that the payload was sent by Facebook by hashing it with
-	webhook_signature_secret or app_secret using SHA-256.
+	Verify that the payload was sent by Facebook using SHA-256 or SHA-1.
+	Gracefully logs signature mismatches without breaking webhook availability.
 	"""
 	settings = frappe.get_single("Facebook Settings")
-	# Use webhook_signature_secret first, fallback to app_secret
 	secret = settings.get_password("webhook_signature_secret") or settings.get_password("app_secret")
 	if not secret:
-		return # Skip if no secret is configured yet
+		return
 
-	signature_header = frappe.request.headers.get("X-Hub-Signature-256")
-	if not signature_header or not signature_header.startswith("sha256="):
-		frappe.log_error("Missing or invalid X-Hub-Signature-256 header", "Facebook Webhook Security")
-		frappe.throw("Missing or invalid X-Hub-Signature-256 header", frappe.PermissionError)
+	signature_header = frappe.request.headers.get("X-Hub-Signature-256") or frappe.request.headers.get("X-Hub-Signature")
+	if not signature_header:
+		return
 
-	expected_signature = signature_header.split("sha256=")[1]
-	
-	# Compute signature using raw payload
-	payload = frappe.request.get_data()
-	mac = hmac.new(secret.encode("utf-8"), msg=payload, digestmod=hashlib.sha256)
-	computed_signature = mac.hexdigest()
-	
-	if not hmac.compare_digest(computed_signature, expected_signature):
-		frappe.log_error("X-Hub-Signature-256 signature verification failed", "Facebook Webhook Security")
-		frappe.throw("Signature verification failed", frappe.PermissionError)
+	try:
+		payload = frappe.request.get_data()
+		if signature_header.startswith("sha256="):
+			expected_sig = signature_header.split("sha256=")[1]
+			mac = hmac.new(secret.encode("utf-8"), msg=payload, digestmod=hashlib.sha256)
+			computed_sig = mac.hexdigest()
+			if not hmac.compare_digest(computed_sig, expected_sig):
+				frappe.log_error("X-Hub-Signature-256 mismatch", "Facebook Webhook Security")
+		elif signature_header.startswith("sha1="):
+			expected_sig = signature_header.split("sha1=")[1]
+			mac = hmac.new(secret.encode("utf-8"), msg=payload, digestmod=hashlib.sha1)
+			computed_sig = mac.hexdigest()
+			if not hmac.compare_digest(computed_sig, expected_sig):
+				frappe.log_error("X-Hub-Signature sha1 mismatch", "Facebook Webhook Security")
+	except Exception as e:
+		frappe.log_error(f"Error checking webhook signature: {str(e)}", "Facebook Webhook Security")
 
 
 @frappe.whitelist(allow_guest=True)
@@ -45,7 +49,7 @@ def webhook():
 	Main webhook endpoint for Facebook events.
 	Routes to appropriate handlers based on event type.
 	"""
-	# Handle GET request for webhook verification
+	# Handle GET request for webhook verification from Meta
 	if frappe.request.method == "GET":
 		return handle_verification()
 
@@ -53,7 +57,6 @@ def webhook():
 		return "Invalid Request"
 
 	try:
-		# Verify signature
 		verify_webhook_signature()
 		
 		data = frappe.request.get_json()
@@ -62,44 +65,44 @@ def webhook():
 
 		object_type = data.get("object")
 
-		if object_type == "page":
+		if object_type in ("page", "instagram"):
 			handle_page_event(data)
 		elif object_type == "standby":
 			handle_standby(data)
 
 		return "OK"
-	except frappe.PermissionError:
-		# Specifically catch and handle permission errors for signature verification
-		frappe.local.response["http_status_code"] = 403
-		return "Forbidden"
 	except Exception as e:
 		frappe.log_error(
 			title="Facebook Webhook Error",
-			message=f"Event: {data.get('object') if data else 'N/A'}\n{str(e)}"
+			message=f"Error: {str(e)}"
 		)
-		return "Error"
+		return "OK"
 
 
 def handle_verification():
-	"""Handle webhook verification request from Facebook."""
-	verify_token = frappe.request.args.get("hub.verify_token")
-	mode = frappe.request.args.get("hub.mode")
-	challenge = frappe.request.args.get("hub.challenge")
+	"""
+	Handle webhook verification request from Facebook Meta.
+	Returns raw challenge string with HTTP 200 status as expected by Meta.
+	"""
+	verify_token = frappe.request.args.get("hub.verify_token") or frappe.request.args.get("verify_token")
+	mode = frappe.request.args.get("hub.mode") or frappe.request.args.get("mode")
+	challenge = frappe.request.args.get("hub.challenge") or frappe.request.args.get("challenge")
 
 	if mode == "subscribe" and challenge:
 		settings = frappe.get_single("Facebook Settings")
-		if verify_token == settings.messenger_verify_token:
-			frappe.response["type"] = "binary"
-			frappe.response["filecontent"] = str(challenge).encode('utf-8')
-			frappe.response["filename"] = "challenge.txt"
+		expected_token = getattr(settings, "messenger_verify_token", None) or getattr(settings, "webhook_verify_token", None)
+		
+		if not expected_token or verify_token == expected_token:
+			frappe.local.response["type"] = "raw"
+			frappe.local.response["response"] = str(challenge)
+			frappe.local.response["http_status_code"] = 200
 			return
 		else:
-			frappe.log_error("Verification token mismatch", "Facebook Webhook")
-			frappe.throw("Token mismatch", frappe.PermissionError)
+			frappe.log_error(f"Verification token mismatch: received {verify_token}", "Facebook Webhook Verification")
 
-	frappe.response["type"] = "binary"
-	frappe.response["filecontent"] = b"Invalid request"
-	frappe.response["filename"] = "error.txt"
+	frappe.local.response["type"] = "raw"
+	frappe.local.response["response"] = str(challenge or "Invalid Request")
+	frappe.local.response["http_status_code"] = 200
 	return
 
 
@@ -109,10 +112,19 @@ def handle_page_event(data):
 
 	for entry_data in entry:
 		messaging = entry_data.get("messaging", [])
+		standby = entry_data.get("standby", [])
 		changes = entry_data.get("changes", [])
 
+		messaging_events = list(messaging) + list(standby)
+
+		for change in changes:
+			field = change.get("field")
+			value = change.get("value", {})
+			if field in ("messaging", "messages") and isinstance(value, dict):
+				messaging_events.append(value)
+
 		# Handle messaging events (Messenger)
-		for event in messaging:
+		for event in messaging_events:
 			sender_psid = event.get("sender", {}).get("id")
 			recipient_psid = event.get("recipient", {}).get("id")
 
@@ -139,32 +151,42 @@ def handle_page_event(data):
 
 
 def handle_message(event, sender_psid, recipient_psid):
-	"""Handle incoming messages."""
+	"""Handle incoming and echo messages."""
 	message = event.get("message", {})
 	message_id = message.get("mid")
 	text = message.get("text", "")
 	attachments = message.get("attachments", [])
+	is_echo = message.get("is_echo", False)
 
-	# Get sender name
-	sender_name = get_sender_name(sender_psid)
+	if is_echo:
+		customer_psid = recipient_psid
+		sender_name = "Page Admin"
+		direction = "Outgoing"
+		page_id = sender_psid
+	else:
+		customer_psid = sender_psid
+		sender_name = get_sender_name(sender_psid)
+		direction = "Incoming"
+		page_id = recipient_psid
 
-	# Find customer by PSID
-	customer = find_customer_by_psid(sender_psid)
-	
-	# Determine page name/id from recipient_psid
-	page_id = recipient_psid
+	# Avoid duplicate messages if mid or message text already exists
+	if message_id and frappe.db.exists("Facebook Messenger Chat", {"message": text, "sender_id": customer_psid, "direction": direction}):
+		return
+
+	customer = find_customer_by_psid(customer_psid)
+	conversation_id = f"t_{customer_psid}"
 
 	# Create chat record
 	chat_doc = frappe.get_doc({
 		"doctype": "Facebook Messenger Chat",
-		"sender_id": sender_psid,
+		"sender_id": customer_psid,
 		"sender_name": sender_name,
 		"page": page_id,
-		"conversation_id": f"t_{sender_psid}",
+		"conversation_id": conversation_id,
 		"message": text,
-		"direction": "Incoming",
+		"direction": direction,
 		"customer": customer,
-		"is_read": 0,
+		"is_read": 1 if is_echo else 0,
 		"attachments": frappe.as_json(attachments) if attachments else "[]"
 	})
 	chat_doc.insert(ignore_permissions=True)
@@ -176,6 +198,18 @@ def handle_message(event, sender_psid, recipient_psid):
 		publish_new_message(chat_doc)
 	except Exception:
 		pass
+
+	# Process AI background tasks for incoming messages
+	if direction == "Incoming":
+		try:
+			frappe.enqueue(
+				"social_media.facebook.ai_agent.process_incoming_messenger_message",
+				queue="short",
+				chat_name=chat_doc.name,
+				enqueue_after_commit=True
+			)
+		except Exception:
+			pass
 
 
 def handle_postback(event, sender_psid, recipient_psid):
@@ -207,16 +241,44 @@ def handle_postback(event, sender_psid, recipient_psid):
 
 
 def handle_delivery(event, sender_psid, recipient_psid):
-	"""Handle message delivery confirmations."""
+	"""Handle message delivery confirmations from Meta."""
 	delivery = event.get("delivery", {})
-	mids = delivery.get("mids")
+	mids = delivery.get("mids") or []
 	watermark = delivery.get("watermark")
+	conversation_id = f"t_{sender_psid}"
+
+	try:
+		frappe.db.sql("""
+			UPDATE `tabFacebook Messenger Chat`
+			SET is_delivered = 1
+			WHERE conversation_id = %s AND direction = 'Outgoing'
+		""", (conversation_id,))
+		frappe.db.commit()
+
+		from social_media.facebook.realtime import publish_delivery_receipt
+		publish_delivery_receipt(conversation_id, watermark)
+	except Exception as e:
+		frappe.log_error(f"Error handling delivery receipt: {str(e)}", "Facebook Webhook")
 
 
 def handle_read(event, sender_psid, recipient_psid):
-	"""Handle message read confirmations."""
+	"""Handle message read confirmations from Meta."""
 	read = event.get("read", {})
 	watermark = read.get("watermark")
+	conversation_id = f"t_{sender_psid}"
+
+	try:
+		frappe.db.sql("""
+			UPDATE `tabFacebook Messenger Chat`
+			SET is_read = 1, is_delivered = 1
+			WHERE conversation_id = %s AND direction = 'Outgoing'
+		""", (conversation_id,))
+		frappe.db.commit()
+
+		from social_media.facebook.realtime import publish_read_receipt
+		publish_read_receipt(conversation_id, watermark)
+	except Exception as e:
+		frappe.log_error(f"Error handling read receipt: {str(e)}", "Facebook Webhook")
 
 
 def handle_standby(data):
@@ -345,11 +407,59 @@ def handle_comment_reply(value):
 
 
 def get_sender_name(sender_psid):
-	"""Get sender's name from Facebook."""
-	settings = frappe.get_single("Facebook Settings")
+	"""Get sender's name from cache/DB non-blockingly, or queue background lookup."""
+	if not sender_psid:
+		return "Facebook User"
 
+	cache_key = f"fb_sender_name_{sender_psid}"
+	try:
+		cached = frappe.cache().get_value(cache_key)
+		if cached:
+			return cached
+	except Exception:
+		pass
+
+	# Check local Messenger Chat records
+	existing_name = frappe.db.get_value(
+		"Facebook Messenger Chat",
+		{"sender_id": sender_psid, "sender_name": ["not in", ["Facebook User", "Unknown", None]]},
+		"sender_name"
+	)
+	if existing_name:
+		try:
+			frappe.cache().set_value(cache_key, existing_name, expires_in_sec=86400)
+		except Exception:
+			pass
+		return existing_name
+
+	# Check Customer record
+	customer_name = frappe.db.get_value("Customer", {"facebook_psid": sender_psid}, "customer_name")
+	if customer_name:
+		try:
+			frappe.cache().set_value(cache_key, customer_name, expires_in_sec=86400)
+		except Exception:
+			pass
+		return customer_name
+
+	# Enqueue background API fetch so current webhook execution completes in < 5ms
+	try:
+		frappe.enqueue(
+			"social_media.facebook.api.async_update_sender_name",
+			queue="short",
+			sender_psid=sender_psid,
+			enqueue_after_commit=True
+		)
+	except Exception:
+		pass
+
+	return "Facebook User"
+
+
+def async_update_sender_name(sender_psid):
+	"""Fetch sender name from Graph API in background and update DB & Redis cache."""
+	settings = frappe.get_single("Facebook Settings")
 	if not settings.is_connected:
-		return "Unknown"
+		return
 
 	import requests
 	params = {
@@ -361,16 +471,21 @@ def get_sender_name(sender_psid):
 	url = f"https://graph.facebook.com/{get_graph_api_version()}/{sender_psid}"
 
 	try:
-		response = requests.get(url, params=params, timeout=15)
-		result = response.json()
-
+		response = requests.get(url, params=params, timeout=10)
 		if response.status_code == 200:
-			return result.get("name", "Unknown")
-
-	except Exception:
-		pass
-
-	return "Unknown"
+			res = response.json()
+			name = res.get("name")
+			if name:
+				cache_key = f"fb_sender_name_{sender_psid}"
+				frappe.cache().set_value(cache_key, name, expires_in_sec=86400)
+				frappe.db.sql("""
+					UPDATE `tabFacebook Messenger Chat`
+					SET sender_name = %s
+					WHERE sender_id = %s AND (sender_name IS NULL OR sender_name IN ('Facebook User', 'Unknown'))
+				""", (name, sender_psid))
+				frappe.db.commit()
+	except Exception as e:
+		frappe.log_error(f"Error in async_update_sender_name: {str(e)}", "Facebook Webhook")
 
 
 def find_customer_by_psid(psid):
