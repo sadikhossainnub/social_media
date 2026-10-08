@@ -253,7 +253,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useInboxStore } from '../stores/inbox';
 import { useAuthStore } from '../stores/auth';
 import {
@@ -280,8 +280,21 @@ const quickReplies = [
   'Our office hours are 9 AM to 6 PM. We will get back to you shortly!'
 ];
 
+let pollTimer = null;
+
 onMounted(() => {
   inboxStore.fetchConversations(authStore.selectedPageId);
+  pollTimer = setInterval(() => {
+    if (inboxStore.selectedChat) {
+      inboxStore.selectConversation(inboxStore.selectedChat);
+    } else {
+      inboxStore.fetchConversations(authStore.selectedPageId);
+    }
+  }, 4000);
+});
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer);
 });
 
 function refresh() {

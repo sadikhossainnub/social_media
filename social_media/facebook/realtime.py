@@ -45,7 +45,7 @@ def publish_new_comment(comment_doc):
 			event="fb_new_comment",
 			message=comment_data,
 			doctype="Facebook Comment",
-			after_commit=True,
+			after_commit=False,
 		)
 	except Exception as e:
 		frappe.log_error(f"Error publishing real-time comment: {str(e)}", "Facebook Realtime")
@@ -77,7 +77,7 @@ def publish_new_message(message_doc):
 			event="fb_new_message",
 			message=message_data,
 			doctype="Facebook Messenger Chat",
-			after_commit=True,
+			after_commit=False,
 		)
 
 		# Thread update event for conversation list re-sorting
@@ -85,7 +85,7 @@ def publish_new_message(message_doc):
 			event="fb_thread_update",
 			message=message_data,
 			doctype="Facebook Messenger Chat",
-			after_commit=True,
+			after_commit=False,
 		)
 
 		# General alert for incoming messages only
@@ -100,7 +100,7 @@ def publish_new_message(message_doc):
 					"conversation_id": message_doc.conversation_id,
 				},
 				doctype="Facebook Messenger Chat",
-				after_commit=True,
+				after_commit=False,
 			)
 	except Exception as e:
 		frappe.log_error(f"Error publishing real-time message: {str(e)}", "Facebook Realtime")
