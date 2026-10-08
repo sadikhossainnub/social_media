@@ -493,7 +493,11 @@ def get_conversations(page_id=None, status=None, page=1, limit=20):
 			c.message AS last_message,
 			c.direction AS last_message_direction,
 			c.timestamp AS last_message_time,
-			COALESCE(cust.sender_name, c.sender_name, 'Facebook Customer') AS sender_name,
+			COALESCE(
+				NULLIF(cust.sender_name, ''),
+				CASE WHEN c.direction = 'Incoming' AND c.sender_name NOT IN ('Paperware Factory', 'Page Admin', 'Page') THEN c.sender_name ELSE NULL END,
+				'Facebook Customer'
+			) AS sender_name,
 			COALESCE(cust.sender_id, CASE WHEN c.conversation_id LIKE 't_%%' THEN SUBSTRING(c.conversation_id, 3) ELSE c.sender_id END) AS sender_id,
 			COALESCE(unr.unread_count, 0) AS unread_count,
 			c.conversation_status,
@@ -516,7 +520,7 @@ def get_conversations(page_id=None, status=None, page=1, limit=20):
 		LEFT JOIN (
 			SELECT conversation_id, MAX(sender_name) AS sender_name, MAX(sender_id) AS sender_id
 			FROM `tabFacebook Messenger Chat`
-			WHERE direction = 'Incoming'
+			WHERE direction = 'Incoming' AND sender_name IS NOT NULL AND sender_name != '' AND sender_name NOT IN ('Paperware Factory', 'Page Admin', 'Page')
 			GROUP BY conversation_id
 		) cust ON c.conversation_id = cust.conversation_id
 		GROUP BY c.conversation_id
@@ -525,6 +529,17 @@ def get_conversations(page_id=None, status=None, page=1, limit=20):
 	"""
 
 	threads = frappe.db.sql(query, params, as_dict=True)
+
+	for t in threads:
+		if not t.get("sender_name") or t["sender_name"] in ("Paperware Factory", "Page Admin", "Facebook Page", "Page", "Facebook Customer"):
+			# Try to get incoming sender_name
+			inc_name = frappe.db.get_value("Facebook Messenger Chat", {"conversation_id": t["conversation_id"], "direction": "Incoming"}, "sender_name")
+			if inc_name and inc_name not in ("Paperware Factory", "Page Admin", "Page"):
+				t["sender_name"] = inc_name
+			else:
+				lead_name = frappe.db.get_value("Lead", {"facebook_psid": t["sender_id"]}, "lead_name")
+				if lead_name:
+					t["sender_name"] = lead_name
 
 	count_query = f"SELECT COUNT(DISTINCT conversation_id) FROM `tabFacebook Messenger Chat` {where_sql}"
 	total_count = frappe.db.sql(count_query, params)[0][0] or 0

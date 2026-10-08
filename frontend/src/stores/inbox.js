@@ -228,7 +228,7 @@ export const useInboxStore = defineStore('inbox', {
       if (!msg) return;
 
       // Check if message belongs to active chat
-      if (this.selectedChat && (msg.conversation_id === this.selectedChat.conversation_id || msg.sender_id === this.selectedChat.sender_id)) {
+      if (this.selectedChat && (msg.conversation_id === this.selectedChat.conversation_id || msg.sender_id === this.selectedChat.sender_id || (msg.conversation_id && msg.conversation_id.includes(this.selectedChat.sender_id)))) {
         // Prevent duplicate appending
         if (!this.activeMessages.some(m => m.name === msg.name || (m.timestamp === msg.timestamp && m.message === msg.message))) {
           this.activeMessages.push(msg);
@@ -236,20 +236,33 @@ export const useInboxStore = defineStore('inbox', {
       }
 
       // Update or insert conversation in list
-      let conv = this.conversations.find(c => c.conversation_id === msg.conversation_id || c.sender_id === msg.sender_id);
+      let conv = this.conversations.find(c => c.conversation_id === msg.conversation_id || (c.sender_id && msg.conversation_id && msg.conversation_id.includes(c.sender_id)));
       if (conv) {
         conv.last_message = msg.message;
         conv.last_message_direction = msg.direction;
         conv.last_message_time = msg.timestamp || new Date().toISOString();
-        if (msg.direction === 'Incoming' && (!this.selectedChat || this.selectedChat.conversation_id !== msg.conversation_id)) {
-          conv.unread_count = (conv.unread_count || 0) + 1;
+        if (msg.direction === 'Incoming') {
+          if (msg.sender_name && !['Paperware Factory', 'Page Admin', 'Page'].includes(msg.sender_name)) {
+            conv.sender_name = msg.sender_name;
+          }
+          if (!this.selectedChat || this.selectedChat.conversation_id !== msg.conversation_id) {
+            conv.unread_count = (conv.unread_count || 0) + 1;
+          }
         }
       } else {
         // Create new conversation item
+        const displayName = (msg.direction === 'Outgoing')
+          ? (this.selectedChat?.sender_name || 'Facebook Customer')
+          : (msg.sender_name || 'Facebook Customer');
+
+        const psid = msg.conversation_id && msg.conversation_id.startsWith('t_')
+          ? msg.conversation_id.substring(2)
+          : msg.sender_id;
+
         this.conversations.unshift({
-          conversation_id: msg.conversation_id || `conv_${msg.sender_id}`,
-          sender_id: msg.sender_id,
-          sender_name: msg.sender_name || 'Facebook Customer',
+          conversation_id: msg.conversation_id || `t_${psid}`,
+          sender_id: psid,
+          sender_name: displayName,
           page: msg.page,
           last_message: msg.message,
           last_message_direction: msg.direction,
@@ -262,7 +275,7 @@ export const useInboxStore = defineStore('inbox', {
 
     handleThreadUpdate(data) {
       if (!data) return;
-      const conv = this.conversations.find(c => c.conversation_id === data.conversation_id || c.sender_id === data.sender_id);
+      const conv = this.conversations.find(c => c.conversation_id === data.conversation_id || (c.sender_id && data.conversation_id && data.conversation_id.includes(c.sender_id)));
       if (conv) {
         if (data.last_message) conv.last_message = data.last_message;
         if (data.last_message_time) conv.last_message_time = data.last_message_time;
