@@ -10,6 +10,7 @@
   "sender_name",
   "customer",
   "page",
+  "platform",
   "conversation_id",
   "column_break_1",
   "direction",
@@ -53,9 +54,16 @@
   },
   {
    "fieldname": "page",
-   "fieldtype": "Link",
-   "label": "Facebook Page",
-   "options": "Facebook Page"
+   "fieldtype": "Data",
+   "label": "Page / Instance ID"
+  },
+  {
+   "default": "Facebook",
+   "fieldname": "platform",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Platform",
+   "options": "Facebook\nInstagram\nWhatsApp"
   },
   {
    "fieldname": "conversation_id",

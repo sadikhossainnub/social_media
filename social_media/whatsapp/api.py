@@ -214,6 +214,37 @@ def handle_message_upsert(data):
 	log_doc.insert(ignore_permissions=True)
 	frappe.db.commit()
 
+	sync_to_universal_inbox(phone_number, chat_doc.contact_name or phone_number, instance_doc, "Incoming", text_body or chat_doc.message)
+
+
+def sync_to_universal_inbox(phone_number, sender_name, instance_name, direction, text_body):
+	"""Sync WhatsApp message to Facebook Messenger Chat doctype for Universal Inbox."""
+	try:
+		conv_id = f"wa_{phone_number}"
+		universal_doc = frappe.get_doc({
+			"doctype": "Facebook Messenger Chat",
+			"platform": "WhatsApp",
+			"sender_id": str(phone_number),
+			"sender_name": str(sender_name or f"+{phone_number}"),
+			"page": str(instance_name),
+			"conversation_id": conv_id,
+			"direction": direction,
+			"message": text_body or "[Message]",
+			"timestamp": frappe.utils.now_datetime(),
+			"is_read": 1 if direction == "Outgoing" else 0
+		})
+		universal_doc.insert(ignore_permissions=True)
+		frappe.db.commit()
+
+		try:
+			from social_media.facebook.realtime import publish_new_message
+			publish_new_message(universal_doc)
+		except Exception:
+			pass
+	except Exception as e:
+		frappe.log_error(title="WhatsApp Universal Inbox Sync Error", message=str(e))
+
+
 
 def handle_connection_update(data):
 	"""Handle CONNECTION_UPDATE — auto-update instance status."""
@@ -346,3 +377,6 @@ def handle_send_message(data):
 	})
 	log_doc.insert(ignore_permissions=True)
 	frappe.db.commit()
+
+	sync_to_universal_inbox(phone_number, chat_doc.contact_name or phone_number, instance_doc, "Outgoing", text_body or chat_doc.message)
+

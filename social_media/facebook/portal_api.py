@@ -462,15 +462,15 @@ def hide_comment(comment_name, hide=True):
 	return api_response(success=False, message="Failed to toggle comment visibility")
 
 
-# ── Messenger Endpoints ───────────────────────────────────────────────
+# ── Messenger & Omnichannel Inbox Endpoints ───────────────────────────
 
 @frappe.whitelist()
-def get_conversations(page_id=None, status=None, page=1, limit=20):
-	"""Get conversation threads grouped by user (optimized single SQL query)."""
-	if page_id and not check_portal_permission(page_id, "can_view"):
+def get_conversations(page_id=None, status=None, channel=None, page=1, limit=20):
+	"""Get conversation threads grouped by user (supporting Facebook, Instagram, WhatsApp)."""
+	if page_id and page_id != "all" and not check_portal_permission(page_id, "can_view"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
-	page_ids = resolve_page_ids(page_id)
+	page_ids = resolve_page_ids(page_id) if page_id and page_id != "all" else []
 	where_clauses = []
 	params = {}
 
@@ -480,25 +480,36 @@ def get_conversations(page_id=None, status=None, page=1, limit=20):
 	if status:
 		where_clauses.append("conversation_status = %(status)s")
 		params["status"] = status
+	if channel and str(channel).lower() != "all":
+		ch_val = str(channel).capitalize()
+		if str(channel).lower() in ("fb", "facebook"):
+			ch_val = "Facebook"
+		elif str(channel).lower() in ("ig", "instagram"):
+			ch_val = "Instagram"
+		elif str(channel).lower() in ("wa", "whatsapp"):
+			ch_val = "WhatsApp"
+		where_clauses.append("COALESCE(NULLIF(platform, ''), CASE WHEN conversation_id LIKE 'wa_%%' THEN 'WhatsApp' WHEN conversation_id LIKE 'ig_%%' THEN 'Instagram' ELSE 'Facebook' END) = %(channel)s")
+		params["channel"] = ch_val
 
 	where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 	limit_start = (int(page) - 1) * int(limit)
 	params["limit_start"] = limit_start
 	params["limit"] = int(limit)
 
-	# High-performance single SQL query
+	# High-performance single SQL query with platform resolution
 	query = f"""
 		SELECT 
 			c.conversation_id,
+			COALESCE(NULLIF(c.platform, ''), CASE WHEN c.conversation_id LIKE 'wa_%%' THEN 'WhatsApp' WHEN c.conversation_id LIKE 'ig_%%' THEN 'Instagram' ELSE 'Facebook' END) AS platform,
 			c.message AS last_message,
 			c.direction AS last_message_direction,
 			c.timestamp AS last_message_time,
 			COALESCE(
 				NULLIF(cust.sender_name, ''),
 				CASE WHEN c.direction = 'Incoming' AND c.sender_name NOT IN ('Paperware Factory', 'Page Admin', 'Page') THEN c.sender_name ELSE NULL END,
-				'Facebook Customer'
+				CASE WHEN c.conversation_id LIKE 'wa_%%' THEN CONCAT('+', SUBSTRING(c.conversation_id, 4)) WHEN c.conversation_id LIKE 'ig_%%' THEN 'Instagram User' ELSE 'Facebook Customer' END
 			) AS sender_name,
-			COALESCE(cust.sender_id, CASE WHEN c.conversation_id LIKE 't_%%' THEN SUBSTRING(c.conversation_id, 3) ELSE c.sender_id END) AS sender_id,
+			COALESCE(cust.sender_id, CASE WHEN c.conversation_id LIKE 't_%%' THEN SUBSTRING(c.conversation_id, 3) WHEN c.conversation_id LIKE 'ig_%%' THEN SUBSTRING(c.conversation_id, 4) WHEN c.conversation_id LIKE 'wa_%%' THEN SUBSTRING(c.conversation_id, 4) ELSE c.sender_id END) AS sender_id,
 			COALESCE(unr.unread_count, 0) AS unread_count,
 			c.conversation_status,
 			c.assigned_agent,
@@ -532,14 +543,17 @@ def get_conversations(page_id=None, status=None, page=1, limit=20):
 
 	for t in threads:
 		if not t.get("sender_name") or t["sender_name"] in ("Paperware Factory", "Page Admin", "Facebook Page", "Page", "Facebook Customer"):
-			# Try to get incoming sender_name
 			inc_name = frappe.db.get_value("Facebook Messenger Chat", {"conversation_id": t["conversation_id"], "direction": "Incoming"}, "sender_name")
 			if inc_name and inc_name not in ("Paperware Factory", "Page Admin", "Page"):
 				t["sender_name"] = inc_name
 			else:
-				lead_name = frappe.db.get_value("Lead", {"facebook_psid": t["sender_id"]}, "lead_name")
-				if lead_name:
-					t["sender_name"] = lead_name
+				try:
+					if frappe.db.has_column("Lead", "facebook_psid"):
+						lead_name = frappe.db.get_value("Lead", {"facebook_psid": t["sender_id"]}, "lead_name")
+						if lead_name:
+							t["sender_name"] = lead_name
+				except Exception:
+					pass
 
 	count_query = f"SELECT COUNT(DISTINCT conversation_id) FROM `tabFacebook Messenger Chat` {where_sql}"
 	total_count = frappe.db.sql(count_query, params)[0][0] or 0
@@ -549,8 +563,8 @@ def get_conversations(page_id=None, status=None, page=1, limit=20):
 
 @frappe.whitelist()
 def get_messages(conversation_id, page=1, limit=50):
-	"""Get all messages in a conversation thread."""
-	sample_msg = frappe.get_all("Facebook Messenger Chat", filters={"conversation_id": conversation_id}, fields=["page"], limit=1)
+	"""Get all messages in a conversation thread (returns platform info for each message)."""
+	sample_msg = frappe.get_all("Facebook Messenger Chat", filters={"conversation_id": conversation_id}, fields=["page", "platform"], limit=1)
 	if sample_msg and sample_msg[0].page and not check_portal_permission(sample_msg[0].page, "can_view"):
 		return api_response(success=False, message="Permission denied", status_code=403)
 		
@@ -559,7 +573,7 @@ def get_messages(conversation_id, page=1, limit=50):
 	messages = frappe.get_all(
 		"Facebook Messenger Chat",
 		filters={"conversation_id": conversation_id},
-		fields=["name", "sender_name", "sender_id", "direction", "timestamp", "message", "is_delivered", "is_read", "attachments"],
+		fields=["name", "platform", "sender_name", "sender_id", "direction", "timestamp", "message", "is_delivered", "is_read", "attachments"],
 		order_by="timestamp asc",
 		limit_start=limit_start,
 		limit_page_length=limit
@@ -576,19 +590,73 @@ def get_messages(conversation_id, page=1, limit=50):
 
 
 @frappe.whitelist()
-def send_message(page_id=None, recipient_id=None, message_text=None, page=None, message=None, **kwargs):
-	"""Send a message to a customer via Messenger."""
+def send_message(page_id=None, recipient_id=None, message_text=None, page=None, message=None, platform=None, **kwargs):
+	"""Send a message to a customer via Messenger, Instagram, or WhatsApp."""
 	actual_page_id = page_id or page
 	actual_message_text = message_text or message
-	actual_recipient_id = recipient_id
+	actual_recipient_id = str(recipient_id or "")
 
 	if not actual_message_text or not actual_recipient_id:
 		return api_response(success=False, message="Message text and recipient ID are required", status_code=400)
 
-	# 1. Resolve actual page_id if page_id is None, 'all', 'undefined', or doc name
+	# Determine target platform from prefix or param
+	target_platform = platform
+	if actual_recipient_id.startswith("wa_"):
+		target_platform = "WhatsApp"
+		actual_recipient_id = actual_recipient_id[3:]
+	elif actual_recipient_id.startswith("ig_"):
+		target_platform = "Instagram"
+		actual_recipient_id = actual_recipient_id[3:]
+	elif not target_platform:
+		conv_match = frappe.get_all("Facebook Messenger Chat", filters={"sender_id": actual_recipient_id}, fields=["platform"], order_by="creation desc", limit=1)
+		if conv_match and conv_match[0].platform:
+			target_platform = conv_match[0].platform
+		else:
+			target_platform = "Facebook"
+
+	# Handle WhatsApp sending
+	if target_platform == "WhatsApp":
+		try:
+			from social_media.whatsapp.utils import send_text
+			instance_name = actual_page_id
+			if not instance_name or str(instance_name).strip().lower() in ("all", "undefined", "null", "none", ""):
+				active_inst = frappe.get_all("Whatsapp Instance", filters={"status": "Connected"}, fields=["instance_name"], limit=1)
+				if not active_inst:
+					active_inst = frappe.get_all("Whatsapp Instance", fields=["instance_name"], limit=1)
+				instance_name = active_inst[0].instance_name if active_inst else "Paperware Customer Care"
+
+			res = send_text(instance_name, actual_recipient_id, actual_message_text)
+
+			conv_id = f"wa_{actual_recipient_id}"
+			msg_doc = frappe.get_doc({
+				"doctype": "Facebook Messenger Chat",
+				"platform": "WhatsApp",
+				"sender_id": actual_recipient_id,
+				"sender_name": "You",
+				"page": str(instance_name),
+				"conversation_id": conv_id,
+				"direction": "Outgoing",
+				"message": actual_message_text,
+				"timestamp": datetime.now(),
+				"is_read": 1
+			})
+			msg_doc.insert(ignore_permissions=True)
+			frappe.db.commit()
+
+			try:
+				from social_media.facebook.realtime import publish_new_message
+				publish_new_message(msg_doc)
+			except Exception:
+				pass
+
+			return api_response(success=True, data=msg_doc.as_dict())
+		except Exception as e:
+			frappe.log_error(title="WhatsApp Portal Send Error", message=str(e))
+			return api_response(success=False, message=f"Failed to send WhatsApp message: {str(e)}")
+
+	# Resolve actual page_id for Meta (Facebook / Instagram)
 	if not actual_page_id or str(actual_page_id).strip().lower() in ("all", "undefined", "null", "none", ""):
-		# Try to find page from existing chat record with this recipient
-		sample = frappe.get_all("Facebook Messenger Chat", filters={"conversation_id": f"t_{actual_recipient_id}"}, fields=["page"], limit=1)
+		sample = frappe.get_all("Facebook Messenger Chat", filters={"sender_id": actual_recipient_id}, fields=["page"], limit=1)
 		if sample and sample[0].page:
 			actual_page_id = sample[0].page
 		else:
@@ -597,7 +665,7 @@ def send_message(page_id=None, recipient_id=None, message_text=None, page=None, 
 				actual_page_id = pages["data"][0].get("name") or pages["data"][0].get("page_id")
 
 	if not actual_page_id:
-		return api_response(success=False, message="No active Facebook Page found for sending message", status_code=400)
+		return api_response(success=False, message="No active Facebook/Instagram Page found for sending message", status_code=400)
 
 	if not check_portal_permission(actual_page_id, "can_message"):
 		return api_response(success=False, message="Permission denied", status_code=403)
@@ -606,21 +674,24 @@ def send_message(page_id=None, recipient_id=None, message_text=None, page=None, 
 	res = client.send_message(actual_recipient_id, actual_message_text)
 	
 	if res and ("message_id" in res or "recipient_id" in res or res.get("success")):
+		prefix = "ig_" if target_platform == "Instagram" else "t_"
+		conv_id = f"{prefix}{actual_recipient_id}"
 		cust = frappe.get_all(
 			"Facebook Messenger Chat",
-			filters={"conversation_id": f"t_{actual_recipient_id}", "direction": "Incoming"},
+			filters={"conversation_id": conv_id, "direction": "Incoming"},
 			fields=["sender_name"],
 			order_by="creation desc",
 			limit=1,
 		)
-		customer_name = cust[0].sender_name if (cust and cust[0].sender_name and cust[0].sender_name not in ("Paperware Factory", "Page Admin", "Page")) else "Customer"
+		customer_name = cust[0].sender_name if (cust and cust[0].sender_name and cust[0].sender_name not in ("Paperware Factory", "Page Admin", "Page")) else ("Instagram User" if target_platform == "Instagram" else "Customer")
 
 		msg_doc = frappe.get_doc({
 			"doctype": "Facebook Messenger Chat",
+			"platform": target_platform,
 			"sender_id": str(actual_recipient_id),
 			"sender_name": customer_name,
 			"page": str(actual_page_id),
-			"conversation_id": f"t_{actual_recipient_id}",
+			"conversation_id": conv_id,
 			"direction": "Outgoing",
 			"message": actual_message_text,
 			"timestamp": datetime.now(),
@@ -643,9 +714,9 @@ def send_message(page_id=None, recipient_id=None, message_text=None, page=None, 
 				"status": "Sent",
 				"timestamp": datetime.now(),
 				"sender_psid": str(client.page_id or actual_page_id),
-				"recipient_psid": recipient_id,
+				"recipient_psid": actual_recipient_id,
 				"message_id": res.get("message_id", ""),
-				"message_text": message_text
+				"message_text": actual_message_text
 			})
 			log_doc.insert(ignore_permissions=True)
 		except Exception:
@@ -653,7 +724,8 @@ def send_message(page_id=None, recipient_id=None, message_text=None, page=None, 
 			
 		return api_response(success=True, data=msg_doc.as_dict())
 		
-	return api_response(success=False, message="Failed to send message via Messenger Graph API")
+	return api_response(success=False, message=f"Failed to send message via {target_platform} API")
+
 
 
 @frappe.whitelist()

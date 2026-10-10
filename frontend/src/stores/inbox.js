@@ -12,6 +12,7 @@ export const useInboxStore = defineStore('inbox', {
     sendingMsg: false,
     generatingAiReply: false,
     filterTab: 'all', // 'all', 'unread', 'complaints'
+    selectedChannel: 'all', // 'all', 'facebook', 'instagram', 'whatsapp'
     searchQuery: '',
     isCustomerTyping: false,
     typingTimer: null,
@@ -21,6 +22,11 @@ export const useInboxStore = defineStore('inbox', {
   getters: {
     filteredConversations: (state) => {
       let result = state.conversations;
+
+      if (state.selectedChannel && state.selectedChannel !== 'all') {
+        const chan = state.selectedChannel.toLowerCase();
+        result = result.filter(c => (c.platform || 'facebook').toLowerCase() === chan);
+      }
 
       if (state.filterTab === 'unread') {
         result = result.filter(c => c.unread_count > 0);
@@ -32,7 +38,8 @@ export const useInboxStore = defineStore('inbox', {
         const q = state.searchQuery.toLowerCase();
         result = result.filter(c => 
           (c.sender_name && c.sender_name.toLowerCase().includes(q)) ||
-          (c.last_message && c.last_message.toLowerCase().includes(q))
+          (c.last_message && c.last_message.toLowerCase().includes(q)) ||
+          (c.sender_id && c.sender_id.toLowerCase().includes(q))
         );
       }
 
@@ -41,6 +48,17 @@ export const useInboxStore = defineStore('inbox', {
 
     totalUnreadCount: (state) => {
       return state.conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0);
+    },
+
+    channelCounts: (state) => {
+      const counts = { all: state.conversations.length, facebook: 0, instagram: 0, whatsapp: 0 };
+      state.conversations.forEach(c => {
+        const p = (c.platform || 'facebook').toLowerCase();
+        if (counts[p] !== undefined) {
+          counts[p]++;
+        }
+      });
+      return counts;
     }
   },
 
@@ -122,7 +140,8 @@ export const useInboxStore = defineStore('inbox', {
       const res = await callApi('send_message', {
         recipient_id: this.selectedChat.sender_id,
         message: text,
-        page: targetPage
+        page: targetPage,
+        platform: this.selectedChat.platform || 'Facebook'
       });
       this.sendingMsg = false;
 
@@ -130,6 +149,7 @@ export const useInboxStore = defineStore('inbox', {
         // Append outgoing message locally
         const newMsg = {
           name: res.data?.name || `temp_${Date.now()}`,
+          platform: this.selectedChat.platform || 'Facebook',
           sender_id: this.selectedChat.sender_id,
           sender_name: 'You',
           direction: 'Outgoing',
@@ -241,6 +261,7 @@ export const useInboxStore = defineStore('inbox', {
         conv.last_message = msg.message;
         conv.last_message_direction = msg.direction;
         conv.last_message_time = msg.timestamp || new Date().toISOString();
+        if (msg.platform) conv.platform = msg.platform;
         if (msg.direction === 'Incoming') {
           if (msg.sender_name && !['Paperware Factory', 'Page Admin', 'Page'].includes(msg.sender_name)) {
             conv.sender_name = msg.sender_name;
@@ -250,17 +271,22 @@ export const useInboxStore = defineStore('inbox', {
           }
         }
       } else {
-        // Create new conversation item
-        const displayName = (msg.direction === 'Outgoing')
-          ? (this.selectedChat?.sender_name || 'Facebook Customer')
-          : (msg.sender_name || 'Facebook Customer');
+        // Determine platform from conversation_id or msg.platform
+        let platform = msg.platform || 'Facebook';
+        if (msg.conversation_id?.startsWith('wa_')) platform = 'WhatsApp';
+        else if (msg.conversation_id?.startsWith('ig_')) platform = 'Instagram';
 
-        const psid = msg.conversation_id && msg.conversation_id.startsWith('t_')
-          ? msg.conversation_id.substring(2)
+        const displayName = (msg.direction === 'Outgoing')
+          ? (this.selectedChat?.sender_name || (platform === 'WhatsApp' ? `+${msg.sender_id}` : platform === 'Instagram' ? 'Instagram User' : 'Facebook Customer'))
+          : (msg.sender_name || (platform === 'WhatsApp' ? `+${msg.sender_id}` : platform === 'Instagram' ? 'Instagram User' : 'Facebook Customer'));
+
+        const psid = msg.conversation_id && (msg.conversation_id.startsWith('t_') || msg.conversation_id.startsWith('wa_') || msg.conversation_id.startsWith('ig_'))
+          ? msg.conversation_id.substring(3)
           : msg.sender_id;
 
         this.conversations.unshift({
           conversation_id: msg.conversation_id || `t_${psid}`,
+          platform: platform,
           sender_id: psid,
           sender_name: displayName,
           page: msg.page,

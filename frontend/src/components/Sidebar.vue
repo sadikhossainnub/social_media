@@ -111,7 +111,7 @@ const commentsStore = useCommentsStore();
 
 const navItems = computed(() => [
   { 
-    name: 'Messenger Inbox', 
+    name: 'Omnichannel Inbox', 
     path: '/inbox', 
     icon: MessageSquare, 
     badge: () => inboxStore.totalUnreadCount 

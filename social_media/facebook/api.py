@@ -66,7 +66,7 @@ def webhook():
 		object_type = data.get("object")
 
 		if object_type in ("page", "instagram"):
-			handle_page_event(data)
+			handle_page_event(data, platform="Instagram" if object_type == "instagram" else "Facebook")
 		elif object_type == "standby":
 			handle_standby(data)
 
@@ -106,8 +106,8 @@ def handle_verification():
 	return
 
 
-def handle_page_event(data):
-	"""Handle page events from Facebook."""
+def handle_page_event(data, platform="Facebook"):
+	"""Handle page events from Facebook/Instagram."""
 	entry = data.get("entry", [])
 
 	for entry_data in entry:
@@ -123,15 +123,15 @@ def handle_page_event(data):
 			if field in ("messaging", "messages") and isinstance(value, dict):
 				messaging_events.append(value)
 
-		# Handle messaging events (Messenger)
+		# Handle messaging events (Messenger / Instagram DMs)
 		for event in messaging_events:
 			sender_psid = event.get("sender", {}).get("id")
 			recipient_psid = event.get("recipient", {}).get("id")
 
 			if event.get("message"):
-				handle_message(event, sender_psid, recipient_psid)
+				handle_message(event, sender_psid, recipient_psid, platform=platform)
 			elif event.get("postback"):
-				handle_postback(event, sender_psid, recipient_psid)
+				handle_postback(event, sender_psid, recipient_psid, platform=platform)
 			elif event.get("delivery"):
 				handle_delivery(event, sender_psid, recipient_psid)
 			elif event.get("read"):
@@ -150,7 +150,7 @@ def handle_page_event(data):
 				handle_comment_reply(value)
 
 
-def handle_message(event, sender_psid, recipient_psid):
+def handle_message(event, sender_psid, recipient_psid, platform="Facebook"):
 	"""Handle incoming and echo messages."""
 	message = event.get("message", {})
 	message_id = message.get("mid")
@@ -174,11 +174,13 @@ def handle_message(event, sender_psid, recipient_psid):
 		return
 
 	customer = find_customer_by_psid(customer_psid)
-	conversation_id = f"t_{customer_psid}"
+	prefix = "ig_" if platform == "Instagram" else "t_"
+	conversation_id = f"{prefix}{customer_psid}"
 
 	# Create chat record
 	chat_doc = frappe.get_doc({
 		"doctype": "Facebook Messenger Chat",
+		"platform": platform,
 		"sender_id": customer_psid,
 		"sender_name": sender_name,
 		"page": page_id,
